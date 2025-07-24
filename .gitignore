@@ -1,0 +1,29 @@
+# Entornos virtuales
+venv/
+.env/
+
+# Archivos compilados de Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Archivos de logs y bases de datos
+*.log
+*.sqlite3
+
+# Archivos de configuración de VSCode
+.vscode/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de entorno o configuración secreta
+.env
+*.env
+
+# Archivos generados por Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Repositorio local de Git
+.git/

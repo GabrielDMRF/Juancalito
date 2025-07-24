@@ -63,6 +63,7 @@ class MainWindow:
             ("➕ Nuevo Empleado", self.nuevo_empleado, "#27ae60"),
             ("✏️ Editar Empleado", self.editar_empleado, "#3498db"),
             ("📄 Contratos", self.abrir_contratos, "#8e44ad"), 
+            ("📦 Inventarios", self.abrir_inventarios, "#1abc9c"),
             ("❌ Inactivar", self.inactivar_empleado, "#e67e22"),
             ("📊 Reportes", self.abrir_reportes, "#9b59b6")
         ]
@@ -342,6 +343,19 @@ class MainWindow:
             messagebox.showerror("Error", "Módulo de contratos no encontrado")
         except Exception as e:
             messagebox.showerror("Error", f"Error al abrir contratos: {e}")
+    
+    def abrir_inventarios(self):
+        """Abrir ventana de gestión de inventarios"""
+        try:
+            # Importar la versión moderna
+            from views.inventario_view import ModernInventarioWindow
+            ModernInventarioWindow(self.root, self)
+        except ImportError as e:
+            print(f"Error de importación: {e}")
+            messagebox.showerror("Error", f"Módulo de inventarios no encontrado: {e}")
+        except Exception as e:
+            print(f"Error general: {e}")
+            messagebox.showerror("Error", f"Error al abrir inventarios: {e}")
 
 # CLASE EmpleadosWindow SIGUE IGUAL...
 class EmpleadosWindow:
