@@ -1,7 +1,10 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 import sys
 import os
+import sqlite3
+from datetime import datetime, date
+import csv
 
 # Agregar path para importar modelos
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,11 +15,11 @@ class MainWindow:
     def __init__(self, root):
         self.root = root
         self.db = get_db()
-        self.configurar_estilos()  # AGREGAR ESTA LÍNEA
+        self.configurar_estilos()
         self.setup_main_window()
         self.create_widgets()
     
-    def configurar_estilos(self):  # MOVER ESTA FUNCIÓN AQUÍ
+    def configurar_estilos(self):
         """Configurar estilos visuales mejorados"""
         style = ttk.Style()
         style.theme_use('clam')
@@ -51,21 +54,21 @@ class MainWindow:
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
         # Título con estilo
-        title = tk.Label(main_frame, text="🏢 Sistema de Gestión de Personal", 
+        title = tk.Label(main_frame, text="Sistema de Gestion de Personal", 
                         font=('Arial', 20, 'bold'), bg='#f0f0f0', fg='#2c3e50')
         title.grid(row=0, column=0, columnspan=4, pady=(0, 25))
         
-        # BOTONES MEJORADOS - REEMPLAZAR LA SECCIÓN ORIGINAL
+        # BOTONES MEJORADOS
         btn_frame = tk.Frame(main_frame, bg='#f0f0f0')
         btn_frame.grid(row=1, column=0, columnspan=4, pady=(0, 20))
         
         buttons_info = [
-            ("➕ Nuevo Empleado", self.nuevo_empleado, "#27ae60"),
-            ("✏️ Editar Empleado", self.editar_empleado, "#3498db"),
-            ("📄 Contratos", self.abrir_contratos, "#8e44ad"), 
-            ("📦 Inventarios", self.abrir_inventarios, "#1abc9c"),
-            ("❌ Inactivar", self.inactivar_empleado, "#e67e22"),
-            ("📊 Reportes", self.abrir_reportes, "#9b59b6")
+            ("+ Nuevo Empleado", self.nuevo_empleado, "#27ae60"),
+            ("Editar Empleado", self.editar_empleado, "#3498db"),
+            ("Contratos", self.abrir_contratos, "#8e44ad"), 
+            ("Inventarios", self.abrir_inventarios, "#1abc9c"),
+            ("X Inactivar", self.inactivar_empleado, "#e67e22"),
+            ("Reportes", self.abrir_reportes, "#9b59b6")
         ]
         
         for i, (text, command, color) in enumerate(buttons_info):
@@ -88,7 +91,7 @@ class MainWindow:
             make_hover(btn, color)
         
         # Frame de búsqueda y filtros
-        search_frame = ttk.LabelFrame(main_frame, text="🔍 Búsqueda y Filtros", padding="15")
+        search_frame = ttk.LabelFrame(main_frame, text="Busqueda y Filtros", padding="15")
         search_frame.grid(row=2, column=0, columnspan=4, sticky=(tk.W, tk.E), pady=(0, 15))
         
         # Búsqueda por texto
@@ -99,7 +102,7 @@ class MainWindow:
         search_entry.grid(row=0, column=1, padx=(0, 20))
         
         # Filtro por área
-        ttk.Label(search_frame, text="Área:", font=('Arial', 10, 'bold')).grid(row=0, column=2, sticky=tk.W, padx=(0, 5))
+        ttk.Label(search_frame, text="Area:", font=('Arial', 10, 'bold')).grid(row=0, column=2, sticky=tk.W, padx=(0, 5))
         self.filter_area = tk.StringVar()
         self.filter_area.trace('w', self.on_search_change)
         area_combo = ttk.Combobox(search_frame, textvariable=self.filter_area, 
@@ -117,16 +120,16 @@ class MainWindow:
         estado_combo.grid(row=0, column=5, padx=(0, 10))
         
         # Botón limpiar filtros
-        clear_btn = tk.Button(search_frame, text="🗑️ Limpiar", command=self.limpiar_filtros,
+        clear_btn = tk.Button(search_frame, text="Limpiar", command=self.limpiar_filtros,
                              bg="#95a5a6", fg="white", font=('Arial', 9, 'bold'),
                              relief='flat', padx=10, pady=5, cursor='hand2')
         clear_btn.grid(row=0, column=6)
         
         # Lista de empleados
-        empleados_frame = ttk.LabelFrame(main_frame, text="👥 Lista de Empleados", padding="15")
+        empleados_frame = ttk.LabelFrame(main_frame, text="Lista de Empleados", padding="15")
         empleados_frame.grid(row=3, column=0, columnspan=4, pady=(15, 0), sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        # Treeview para mostrar empleados CON ESTILO
+        # Treeview para mostrar empleados
         columns = ('ID', 'Nombre', 'Cedula', 'Telefono', 'Area', 'Cargo', 'Salario', 'Estado')
         self.tree = ttk.Treeview(empleados_frame, columns=columns, show='headings', 
                                 height=12, style='Empleados.Treeview')
@@ -204,7 +207,7 @@ class MainWindow:
             # Contar elementos mostrados en la tabla
             items_mostrados = len(self.tree.get_children())
             
-            status_text = f"📊 Total: {total_empleados} | ✅ Activos: {activos} | ❌ Inactivos: {inactivos} | 👁️ Mostrando: {items_mostrados} | 🕐 {current_time}"
+            status_text = f"Total: {total_empleados} | Activos: {activos} | Inactivos: {inactivos} | Mostrando: {items_mostrados} | {current_time}"
             self.status_label.config(text=status_text)
             
             self.root.after(1000, self.update_status)
@@ -212,7 +215,6 @@ class MainWindow:
             self.status_label.config(text="Sistema activo")
             self.root.after(1000, self.update_status)
     
-    # RESTO DE FUNCIONES IGUAL QUE ANTES...
     def on_search_change(self, *args):
         """Llamada cuando cambian los filtros de búsqueda"""
         self.cargar_empleados()
@@ -239,7 +241,6 @@ class MainWindow:
                 query = query.filter(Empleado.estado == True)
             elif estado_filtro == "Inactivos":
                 query = query.filter(Empleado.estado == False)
-            # "Todos" no aplica filtro
             
             # Aplicar filtro de área
             area_filtro = self.filter_area.get()
@@ -260,7 +261,7 @@ class MainWindow:
             
             # Cargar en TreeView
             for emp in empleados:
-                estado_texto = "✅ Activo" if emp.estado else "❌ Inactivo"
+                estado_texto = "Activo" if emp.estado else "Inactivo"
                 salario_texto = f"${emp.salario_base:,}" if emp.salario_base else "No definido"
                 
                 self.tree.insert('', 'end', values=(
@@ -333,7 +334,6 @@ class MainWindow:
     def abrir_reportes(self):
         print("Módulo de reportes - Próximamente")
 
-
     def abrir_contratos(self):
         """Abrir ventana de gestión de contratos"""
         try:
@@ -345,19 +345,1260 @@ class MainWindow:
             messagebox.showerror("Error", f"Error al abrir contratos: {e}")
     
     def abrir_inventarios(self):
-        """Abrir ventana de gestión de inventarios"""
+        """Abrir ventana de gestión de inventarios - VERSIÓN COMPLETA"""
         try:
-            # Importar la versión moderna
-            from views.inventario_view import ModernInventarioWindow
-            ModernInventarioWindow(self.root, self)
-        except ImportError as e:
-            print(f"Error de importación: {e}")
-            messagebox.showerror("Error", f"Módulo de inventarios no encontrado: {e}")
+            print("Abriendo Centro de Inventarios completo...")
+            FullInventarioWindow(self.root, self)
         except Exception as e:
-            print(f"Error general: {e}")
+            print(f"Error abriendo inventarios: {e}")
             messagebox.showerror("Error", f"Error al abrir inventarios: {e}")
 
-# CLASE EmpleadosWindow SIGUE IGUAL...
+
+# ================= SISTEMA COMPLETO DE INVENTARIOS =================
+
+class FullInventarioWindow:
+    """Sistema completo de inventarios con funcionalidades reales"""
+    
+    def __init__(self, parent, main_window=None):
+        self.parent = parent
+        self.main_window = main_window
+        
+        # Crear ventana principal
+        self.window = tk.Toplevel(parent)
+        self.window.title("CENTRO DE INVENTARIOS - Sistema Completo")
+        self.window.geometry("1400x900")
+        self.window.configure(bg='#f8f9fa')
+        
+        # Configurar ventana
+        self.window.resizable(True, True)
+        self.window.minsize(1200, 700)
+        
+        # Centrar ventana
+        self.center_window()
+        
+        # Hacer modal
+        self.window.transient(parent)
+        self.window.grab_set()
+        
+        # Configurar estilos y colores
+        self.setup_styles()
+        
+        # Inicializar bases de datos
+        self.setup_databases()
+        
+        # Crear interfaz
+        self.create_interface()
+        
+        # Cargar datos iniciales
+        self.load_initial_data()
+    
+    def setup_styles(self):
+        """Configurar estilos y colores"""
+        self.colors = {
+            'primary': '#2c3e50',
+            'secondary': '#34495e',
+            'success': '#27ae60',
+            'info': '#3498db',
+            'warning': '#f39c12',
+            'danger': '#e74c3c',
+            'quimicos': '#27ae60',
+            'almacen': '#3498db',
+            'poscosecha': '#16a085'
+        }
+        
+        # Configurar estilos de TreeView
+        style = ttk.Style()
+        
+        # Estilo para químicos
+        style.configure('Quimicos.Treeview', font=('Arial', 9), rowheight=25)
+        style.configure('Quimicos.Treeview.Heading', 
+                       font=('Arial', 9, 'bold'), 
+                       background=self.colors['quimicos'], 
+                       foreground='white')
+        
+        # Estilo para almacén
+        style.configure('Almacen.Treeview', font=('Arial', 9), rowheight=25)
+        style.configure('Almacen.Treeview.Heading',
+                       font=('Arial', 9, 'bold'),
+                       background=self.colors['almacen'],
+                       foreground='white')
+        
+        # Estilo para poscosecha
+        style.configure('Poscosecha.Treeview', font=('Arial', 9), rowheight=25)
+        style.configure('Poscosecha.Treeview.Heading',
+                       font=('Arial', 9, 'bold'),
+                       background=self.colors['poscosecha'],
+                       foreground='white')
+    
+    def center_window(self):
+        """Centrar ventana"""
+        self.window.update_idletasks()
+        x = (self.window.winfo_screenwidth() // 2) - (1400 // 2)
+        y = (self.window.winfo_screenheight() // 2) - (900 // 2)
+        self.window.geometry(f"1400x900+{x}+{y}")
+    
+    def setup_databases(self):
+        """Configurar bases de datos para cada sistema"""
+        try:
+            # Crear directorio de bases de datos
+            os.makedirs('database', exist_ok=True)
+            
+            # Bases de datos específicas
+            self.db_paths = {
+                'quimicos': 'database/inventario_quimicos.db',
+                'almacen': 'database/inventario_almacen.db',
+                'poscosecha': 'database/inventario_poscosecha.db'
+            }
+            
+            # Crear tablas para cada sistema
+            self.create_databases()
+            
+        except Exception as e:
+            print(f"Error configurando bases de datos: {e}")
+    
+    def create_databases(self):
+        """Crear bases de datos y tablas"""
+        # Base de datos de químicos
+        conn_q = sqlite3.connect(self.db_paths['quimicos'])
+        cursor_q = conn_q.cursor()
+        cursor_q.execute('''
+            CREATE TABLE IF NOT EXISTS productos_quimicos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                codigo TEXT UNIQUE,
+                clase TEXT,
+                nombre TEXT,
+                saldo INTEGER DEFAULT 0,
+                unidad TEXT,
+                valor_unitario REAL DEFAULT 0,
+                ubicacion TEXT,
+                proveedor TEXT,
+                fecha_vencimiento DATE,
+                nivel_peligrosidad TEXT DEFAULT 'MEDIO',
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        conn_q.commit()
+        conn_q.close()
+        
+        # Base de datos de almacén
+        conn_a = sqlite3.connect(self.db_paths['almacen'])
+        cursor_a = conn_a.cursor()
+        cursor_a.execute('''
+            CREATE TABLE IF NOT EXISTS productos_almacen (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                codigo TEXT UNIQUE,
+                nombre TEXT,
+                saldo INTEGER DEFAULT 0,
+                unidad TEXT,
+                valor_unitario REAL DEFAULT 0,
+                stock_minimo INTEGER DEFAULT 0,
+                ubicacion TEXT,
+                proveedor TEXT,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        conn_a.commit()
+        conn_a.close()
+        
+        # Base de datos de poscosecha
+        conn_p = sqlite3.connect(self.db_paths['poscosecha'])
+        cursor_p = conn_p.cursor()
+        cursor_p.execute('''
+            CREATE TABLE IF NOT EXISTS productos_poscosecha (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                codigo TEXT UNIQUE,
+                categoria TEXT,
+                nombre TEXT,
+                saldo INTEGER DEFAULT 0,
+                unidad TEXT,
+                valor_unitario REAL DEFAULT 0,
+                stock_minimo INTEGER DEFAULT 0,
+                ubicacion TEXT,
+                proveedor TEXT,
+                tipo_producto TEXT,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        conn_p.commit()
+        conn_p.close()
+        
+        print("Bases de datos creadas exitosamente")
+    
+    def create_interface(self):
+        """Crear interfaz principal"""
+        # Header principal
+        self.create_header()
+        
+        # Notebook para pestañas
+        self.notebook = ttk.Notebook(self.window)
+        self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        
+        # Crear pestañas
+        self.create_dashboard_tab()
+        self.create_quimicos_tab()
+        self.create_almacen_tab()
+        self.create_poscosecha_tab()
+        
+        # Footer
+        self.create_footer()
+    
+    def create_header(self):
+        """Crear header principal"""
+        header = tk.Frame(self.window, bg=self.colors['primary'], height=80)
+        header.pack(fill=tk.X)
+        header.pack_propagate(False)
+        
+        header_content = tk.Frame(header, bg=self.colors['primary'])
+        header_content.pack(fill=tk.BOTH, expand=True, padx=30, pady=20)
+        
+        # Título
+        title_label = tk.Label(header_content, text="CENTRO DE INVENTARIOS - Sistema Completo", 
+                              font=('Arial', 20, 'bold'),
+                              bg=self.colors['primary'], fg='white')
+        title_label.pack(side=tk.LEFT)
+        
+        # Fecha y hora actual
+        datetime_label = tk.Label(header_content, text=datetime.now().strftime("%d/%m/%Y - %H:%M"),
+                                 font=('Arial', 12),
+                                 bg=self.colors['primary'], fg='white')
+        datetime_label.pack(side=tk.RIGHT, padx=(0, 20))
+        
+        # Botón cerrar
+        close_btn = tk.Button(header_content, text="X Cerrar",
+                             command=self.close_window,
+                             bg=self.colors['danger'], fg='white',
+                             font=('Arial', 10, 'bold'),
+                             relief='flat', bd=0, padx=15, pady=5, cursor='hand2')
+        close_btn.pack(side=tk.RIGHT)
+    
+    def create_dashboard_tab(self):
+        """Crear pestaña de dashboard"""
+        dashboard_frame = ttk.Frame(self.notebook)
+        self.notebook.add(dashboard_frame, text="Dashboard General")
+        
+        # Contenido del dashboard
+        main_content = tk.Frame(dashboard_frame, bg='#f8f9fa')
+        main_content.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        # Título
+        title_label = tk.Label(main_content, text="Dashboard de Inventarios",
+                              font=('Arial', 18, 'bold'),
+                              bg='#f8f9fa', fg=self.colors['primary'])
+        title_label.pack(pady=(0, 20))
+        
+        # Frame para estadísticas
+        stats_frame = tk.Frame(main_content, bg='#f8f9fa')
+        stats_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        # Crear cards de estadísticas
+        self.create_stats_cards(stats_frame)
+        
+        # Frame para acciones rápidas
+        actions_frame = tk.Frame(main_content, bg='#f8f9fa')
+        actions_frame.pack(fill=tk.X)
+        
+        # Crear botones de acciones
+        self.create_dashboard_actions(actions_frame)
+    
+    def create_stats_cards(self, parent):
+        """Crear cards de estadísticas"""
+        # Obtener estadísticas de cada sistema
+        stats = self.get_inventory_stats()
+        
+        cards_data = [
+            ("QUIMICOS", stats['quimicos'], self.colors['quimicos']),
+            ("ALMACEN", stats['almacen'], self.colors['almacen']),
+            ("POSCOSECHA", stats['poscosecha'], self.colors['poscosecha']),
+            ("TOTAL", stats['total'], "#9b59b6")
+        ]
+        
+        for i, (title, count, color) in enumerate(cards_data):
+            card = tk.Frame(parent, bg='white', relief='solid', bd=1)
+            card.grid(row=0, column=i, sticky='ew', padx=10, pady=10)
+            
+            # Header de la card
+            header = tk.Frame(card, bg=color, height=40)
+            header.pack(fill=tk.X)
+            header.pack_propagate(False)
+            
+            header_label = tk.Label(header, text=title,
+                                   font=('Arial', 12, 'bold'),
+                                   bg=color, fg='white')
+            header_label.pack(expand=True)
+            
+            # Contenido
+            content = tk.Frame(card, bg='white')
+            content.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+            
+            count_label = tk.Label(content, text=str(count),
+                                  font=('Arial', 24, 'bold'),
+                                  bg='white', fg=color)
+            count_label.pack()
+            
+            desc_label = tk.Label(content, text="Productos",
+                                 font=('Arial', 10),
+                                 bg='white', fg='#7f8c8d')
+            desc_label.pack()
+        
+        # Configurar grid
+        for i in range(4):
+            parent.grid_columnconfigure(i, weight=1)
+    
+    def create_dashboard_actions(self, parent):
+        """Crear acciones del dashboard"""
+        title_label = tk.Label(parent, text="Acciones Rapidas",
+                              font=('Arial', 14, 'bold'),
+                              bg='#f8f9fa', fg=self.colors['primary'])
+        title_label.pack(pady=(0, 15))
+        
+        buttons_frame = tk.Frame(parent, bg='#f8f9fa')
+        buttons_frame.pack()
+        
+        buttons = [
+            ("Cargar desde Excel", self.load_from_excel, self.colors['info']),
+            ("Generar Reporte", self.generate_report, self.colors['warning']),
+            ("Exportar Datos", self.export_data, self.colors['success']),
+            ("Configuraciones", self.show_settings, "#95a5a6")
+        ]
+        
+        for text, command, color in buttons:
+            btn = tk.Button(buttons_frame, text=text, command=command,
+                           bg=color, fg='white', font=('Arial', 11, 'bold'),
+                           relief='flat', bd=0, padx=20, pady=10, cursor='hand2')
+            btn.pack(side=tk.LEFT, padx=10)
+            self.add_hover_effect(btn, color)
+    
+    def create_quimicos_tab(self):
+        """Crear pestaña de químicos"""
+        quimicos_frame = ttk.Frame(self.notebook)
+        self.notebook.add(quimicos_frame, text="Quimicos Agricolas")
+        
+        InventorySystemTab(quimicos_frame, 'quimicos', self.db_paths['quimicos'], 
+                          self.colors['quimicos'], self)
+    
+    def create_almacen_tab(self):
+        """Crear pestaña de almacén"""
+        almacen_frame = ttk.Frame(self.notebook)
+        self.notebook.add(almacen_frame, text="Almacen General")
+        
+        InventorySystemTab(almacen_frame, 'almacen', self.db_paths['almacen'],
+                          self.colors['almacen'], self)
+    
+    def create_poscosecha_tab(self):
+        """Crear pestaña de poscosecha"""
+        poscosecha_frame = ttk.Frame(self.notebook)
+        self.notebook.add(poscosecha_frame, text="Poscosecha")
+        
+        InventorySystemTab(poscosecha_frame, 'poscosecha', self.db_paths['poscosecha'],
+                          self.colors['poscosecha'], self)
+    
+    def create_footer(self):
+        """Crear footer"""
+        footer = tk.Frame(self.window, bg=self.colors['secondary'], height=30)
+        footer.pack(fill=tk.X, side=tk.BOTTOM)
+        footer.pack_propagate(False)
+        
+        footer_label = tk.Label(footer, text="Centro de Inventarios v1.0 - Todos los sistemas operativos",
+                               bg=self.colors['secondary'], fg='white', font=('Arial', 9))
+        footer_label.pack(expand=True)
+    
+    def load_initial_data(self):
+        """Cargar datos iniciales de ejemplo"""
+        try:
+            # Cargar datos de ejemplo para químicos
+            self.load_sample_quimicos()
+            
+            # Cargar datos de ejemplo para almacén
+            self.load_sample_almacen()
+            
+            # Cargar datos de ejemplo para poscosecha
+            self.load_sample_poscosecha()
+            
+            print("Datos iniciales cargados exitosamente")
+            
+        except Exception as e:
+            print(f"Error cargando datos iniciales: {e}")
+    
+    def load_sample_quimicos(self):
+        """Cargar datos de ejemplo para químicos"""
+        conn = sqlite3.connect(self.db_paths['quimicos'])
+        cursor = conn.cursor()
+        
+        # Verificar si ya hay datos
+        cursor.execute("SELECT COUNT(*) FROM productos_quimicos")
+        if cursor.fetchone()[0] > 0:
+            conn.close()
+            return
+        
+        sample_data = [
+            ('QM001', 'ACARICIDA', 'Abamectina 1.8%', 500, 'ML', 120, 'A-01', 'BAYER', '2025-12-31', 'ALTO'),
+            ('QM002', 'FUNGICIDA', 'Mancozeb 80%', 2000, 'GR', 85, 'A-02', 'SYNGENTA', '2025-10-15', 'MEDIO'),
+            ('QM003', 'INSECTICIDA', 'Lambda Cyhalothrin', 300, 'ML', 350, 'A-03', 'CORTEVA', '2025-08-20', 'ALTO'),
+            ('QM004', 'HERBICIDA', 'Glifosato 48%', 1000, 'ML', 45, 'B-01', 'MONSANTO', '2026-03-10', 'MEDIO'),
+            ('QM005', 'FERTILIZANTE', 'Urea 46%', 5000, 'KG', 2.5, 'C-01', 'YARA', None, 'BAJO'),
+        ]
+        
+        cursor.executemany('''
+            INSERT INTO productos_quimicos 
+            (codigo, clase, nombre, saldo, unidad, valor_unitario, ubicacion, proveedor, fecha_vencimiento, nivel_peligrosidad)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', sample_data)
+        
+        conn.commit()
+        conn.close()
+    
+    def load_sample_almacen(self):
+        """Cargar datos de ejemplo para almacén"""
+        conn = sqlite3.connect(self.db_paths['almacen'])
+        cursor = conn.cursor()
+        
+        # Verificar si ya hay datos
+        cursor.execute("SELECT COUNT(*) FROM productos_almacen")
+        if cursor.fetchone()[0] > 0:
+            conn.close()
+            return
+        
+        sample_data = [
+            ('ALM001', 'Aceite 15W-40', 50, 'LT', 45000, 10, 'A-01', 'LUBRICANTES SA'),
+            ('ALM002', 'Filtro de aire', 25, 'UND', 25000, 5, 'A-02', 'REPUESTOS DIESEL'),
+            ('ALM003', 'Llaves inglesas 12"', 15, 'UND', 35000, 3, 'A-03', 'HERRAMIENTAS PRO'),
+            ('ALM004', 'Tornillos M8x20', 500, 'UND', 500, 100, 'A-04', 'TORNILLERIA'),
+            ('ALM005', 'Cable eléctrico 12AWG', 200, 'MT', 2500, 50, 'A-05', 'ELECTRICOS DEL VALLE'),
+        ]
+        
+        cursor.executemany('''
+            INSERT INTO productos_almacen 
+            (codigo, nombre, saldo, unidad, valor_unitario, stock_minimo, ubicacion, proveedor)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', sample_data)
+        
+        conn.commit()
+        conn.close()
+    
+    def load_sample_poscosecha(self):
+        """Cargar datos de ejemplo para poscosecha"""
+        conn = sqlite3.connect(self.db_paths['poscosecha'])
+        cursor = conn.cursor()
+        
+        # Verificar si ya hay datos
+        cursor.execute("SELECT COUNT(*) FROM productos_poscosecha")
+        if cursor.fetchone()[0] > 0:
+            conn.close()
+            return
+        
+        sample_data = [
+            ('PC001', 'EMBALAJE', 'Cajas cartón 18kg', 1000, 'UND', 2500, 100, 'PC-01', 'CARTONERIA', 'EMPAQUE'),
+            ('PC002', 'QUIMICO', 'Tiabendazol', 50, 'KG', 45000, 10, 'PC-02', 'AGROQUIMICOS', 'TRATAMIENTO'),
+            ('PC003', 'ETIQUETA', 'Etiquetas PLU', 5000, 'UND', 25, 1000, 'PC-03', 'ETIQUETAS SA', 'IDENTIFICACION'),
+            ('PC004', 'HERRAMIENTA', 'Cuchillos inox', 20, 'UND', 35000, 5, 'PC-04', 'HERRAMIENTAS', 'HERRAMIENTA'),
+            ('PC005', 'EMBALAJE', 'Pallets 120x80', 150, 'UND', 125000, 20, 'PC-05', 'PALLETS COL', 'EMPAQUE'),
+        ]
+        
+        cursor.executemany('''
+            INSERT INTO productos_poscosecha 
+            (codigo, categoria, nombre, saldo, unidad, valor_unitario, stock_minimo, ubicacion, proveedor, tipo_producto)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', sample_data)
+        
+        conn.commit()
+        conn.close()
+    
+    def get_inventory_stats(self):
+        """Obtener estadísticas de inventarios"""
+        stats = {'quimicos': 0, 'almacen': 0, 'poscosecha': 0, 'total': 0}
+        
+        try:
+            # Químicos
+            conn = sqlite3.connect(self.db_paths['quimicos'])
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM productos_quimicos")
+            stats['quimicos'] = cursor.fetchone()[0]
+            conn.close()
+            
+            # Almacén
+            conn = sqlite3.connect(self.db_paths['almacen'])
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM productos_almacen")
+            stats['almacen'] = cursor.fetchone()[0]
+            conn.close()
+            
+            # Poscosecha
+            conn = sqlite3.connect(self.db_paths['poscosecha'])
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM productos_poscosecha")
+            stats['poscosecha'] = cursor.fetchone()[0]
+            conn.close()
+            
+            stats['total'] = stats['quimicos'] + stats['almacen'] + stats['poscosecha']
+            
+        except Exception as e:
+            print(f"Error obteniendo estadísticas: {e}")
+        
+        return stats
+    
+    # Funciones de acciones del dashboard
+    def load_from_excel(self):
+        """Cargar datos desde Excel"""
+        file_path = filedialog.askopenfilename(
+            title="Seleccionar archivo Excel",
+            filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")]
+        )
+        if file_path:
+            messagebox.showinfo("Carga de Excel", f"Funcionalidad en desarrollo\nArchivo seleccionado: {file_path}")
+    
+    def generate_report(self):
+        """Generar reporte"""
+        messagebox.showinfo("Reportes", "Generando reporte completo de inventarios...")
+    
+    def export_data(self):
+        """Exportar datos"""
+        file_path = filedialog.asksaveasfilename(
+            title="Exportar datos",
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+        )
+        if file_path:
+            messagebox.showinfo("Exportar", f"Datos exportados a: {file_path}")
+    
+    def show_settings(self):
+        """Mostrar configuraciones"""
+        messagebox.showinfo("Configuraciones", "Panel de configuraciones del sistema")
+    
+    def add_hover_effect(self, button, color):
+        """Agregar efecto hover"""
+        def on_enter(e):
+            button.config(bg=self.darken_color(color))
+        def on_leave(e):
+            button.config(bg=color)
+        
+        button.bind("<Enter>", on_enter)
+        button.bind("<Leave>", on_leave)
+    
+    def darken_color(self, color):
+        """Oscurecer color"""
+        color_map = {
+            '#27ae60': '#229954', '#3498db': '#2980b9', '#f39c12': '#e67e22',
+            '#e74c3c': '#c0392b', '#16a085': '#138d75', '#95a5a6': '#7f8c8d'
+        }
+        return color_map.get(color, color)
+    
+    def close_window(self):
+        """Cerrar ventana"""
+        self.window.destroy()
+
+
+# ================= PESTAÑA INDIVIDUAL PARA CADA SISTEMA =================
+
+class InventorySystemTab:
+    """Pestaña individual para cada sistema de inventario"""
+    
+    def __init__(self, parent, system_type, db_path, color, main_window):
+        self.parent = parent
+        self.system_type = system_type
+        self.db_path = db_path
+        self.color = color
+        self.main_window = main_window
+        
+        self.create_interface()
+        self.load_data()
+    
+    def create_interface(self):
+        """Crear interfaz de la pestaña"""
+        # Frame principal
+        main_frame = tk.Frame(self.parent, bg='#f8f9fa')
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        # Header de la pestaña
+        self.create_tab_header(main_frame)
+        
+        # Área de búsqueda y filtros
+        self.create_search_area(main_frame)
+        
+        # Tabla de productos
+        self.create_products_table(main_frame)
+        
+        # Panel de acciones
+        self.create_actions_panel(main_frame)
+    
+    def create_tab_header(self, parent):
+        """Crear header de la pestaña"""
+        header = tk.Frame(parent, bg=self.color, height=60)
+        header.pack(fill=tk.X)
+        header.pack_propagate(False)
+        
+        header_content = tk.Frame(header, bg=self.color)
+        header_content.pack(fill=tk.BOTH, expand=True, padx=20, pady=15)
+        
+        # Título
+        system_names = {
+            'quimicos': 'PRODUCTOS QUIMICOS AGRICOLAS',
+            'almacen': 'INVENTARIO DE ALMACEN GENERAL',
+            'poscosecha': 'PRODUCTOS DE POSCOSECHA'
+        }
+        
+        title_label = tk.Label(header_content, text=system_names[self.system_type],
+                              font=('Arial', 16, 'bold'),
+                              bg=self.color, fg='white')
+        title_label.pack(side=tk.LEFT)
+        
+        # Contador de productos
+        self.count_label = tk.Label(header_content, text="",
+                                   font=('Arial', 12),
+                                   bg=self.color, fg='white')
+        self.count_label.pack(side=tk.RIGHT)
+    
+    def create_search_area(self, parent):
+        """Crear área de búsqueda"""
+        search_frame = tk.LabelFrame(parent, text="Busqueda y Filtros", 
+                                    font=('Arial', 10, 'bold'),
+                                    bg='#f8f9fa', fg='#2c3e50',
+                                    padx=15, pady=10)
+        search_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        # Búsqueda
+        search_row = tk.Frame(search_frame, bg='#f8f9fa')
+        search_row.pack(fill=tk.X, pady=5)
+        
+        tk.Label(search_row, text="Buscar:", font=('Arial', 9, 'bold'),
+                bg='#f8f9fa').pack(side=tk.LEFT, padx=(0, 5))
+        
+        self.search_var = tk.StringVar()
+        self.search_var.trace('w', self.on_search_change)
+        search_entry = tk.Entry(search_row, textvariable=self.search_var,
+                               font=('Arial', 10), width=30)
+        search_entry.pack(side=tk.LEFT, padx=(0, 20))
+        
+        # Botón buscar
+        search_btn = tk.Button(search_row, text="Buscar",
+                              command=self.search_products,
+                              bg=self.color, fg='white',
+                              font=('Arial', 9, 'bold'),
+                              relief='flat', padx=15, pady=5, cursor='hand2')
+        search_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Botón limpiar
+        clear_btn = tk.Button(search_row, text="Limpiar",
+                             command=self.clear_search,
+                             bg='#95a5a6', fg='white',
+                             font=('Arial', 9, 'bold'),
+                             relief='flat', padx=15, pady=5, cursor='hand2')
+        clear_btn.pack(side=tk.LEFT, padx=5)
+    
+    def create_products_table(self, parent):
+        """Crear tabla de productos"""
+        table_frame = tk.LabelFrame(parent, text="Lista de Productos",
+                                   font=('Arial', 10, 'bold'),
+                                   bg='#f8f9fa', fg='#2c3e50',
+                                   padx=15, pady=10)
+        table_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
+        
+        # Configurar columnas según el tipo de sistema
+        if self.system_type == 'quimicos':
+            columns = ('Codigo', 'Clase', 'Producto', 'Saldo', 'Unidad', 'Valor', 'Ubicacion', 'Proveedor', 'Peligrosidad')
+            style_name = 'Quimicos.Treeview'
+        elif self.system_type == 'almacen':
+            columns = ('Codigo', 'Producto', 'Saldo', 'Unidad', 'Valor', 'Stock Min', 'Ubicacion', 'Proveedor')
+            style_name = 'Almacen.Treeview'
+        else:  # poscosecha
+            columns = ('Codigo', 'Categoria', 'Producto', 'Saldo', 'Unidad', 'Valor', 'Stock Min', 'Ubicacion', 'Tipo')
+            style_name = 'Poscosecha.Treeview'
+        
+        # TreeView
+        self.tree = ttk.Treeview(table_frame, columns=columns, show='headings',
+                                height=15, style=style_name)
+        
+        # Configurar columnas
+        column_widths = {
+            'Codigo': 80, 'Clase': 100, 'Categoria': 100, 'Producto': 200,
+            'Saldo': 80, 'Unidad': 70, 'Valor': 100, 'Stock Min': 80,
+            'Ubicacion': 80, 'Proveedor': 150, 'Peligrosidad': 100, 'Tipo': 120
+        }
+        
+        for col in columns:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=column_widths.get(col, 100))
+        
+        # Scrollbars
+        v_scroll = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
+        h_scroll = ttk.Scrollbar(table_frame, orient=tk.HORIZONTAL, command=self.tree.xview)
+        self.tree.configure(yscrollcommand=v_scroll.set, xscrollcommand=h_scroll.set)
+        
+        # Grid
+        self.tree.grid(row=0, column=0, sticky='nsew')
+        v_scroll.grid(row=0, column=1, sticky='ns')
+        h_scroll.grid(row=1, column=0, sticky='ew')
+        
+        table_frame.grid_rowconfigure(0, weight=1)
+        table_frame.grid_columnconfigure(0, weight=1)
+        
+        # Eventos
+        self.tree.bind('<Double-1>', self.on_double_click)
+    
+    def create_actions_panel(self, parent):
+        """Crear panel de acciones"""
+        actions_frame = tk.Frame(parent, bg='#f8f9fa')
+        actions_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        # Botones de acción
+        actions = [
+            ("+ Nuevo Producto", self.new_product, self.color),
+            ("Editar", self.edit_product, '#3498db'),
+            ("Eliminar", self.delete_product, '#e74c3c'),
+            ("Exportar", self.export_products, '#f39c12')
+        ]
+        
+        for text, command, color in actions:
+            btn = tk.Button(actions_frame, text=text, command=command,
+                           bg=color, fg='white', font=('Arial', 10, 'bold'),
+                           relief='flat', bd=0, padx=20, pady=8, cursor='hand2')
+            btn.pack(side=tk.LEFT, padx=5)
+            self.add_hover_effect(btn, color)
+    
+    def load_data(self):
+        """Cargar datos en la tabla"""
+        try:
+            # Limpiar tabla
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+            
+            # Conectar a base de datos
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Query según tipo de sistema
+            if self.system_type == 'quimicos':
+                cursor.execute("""
+                    SELECT codigo, clase, nombre, saldo, unidad, valor_unitario, 
+                           ubicacion, proveedor, nivel_peligrosidad
+                    FROM productos_quimicos ORDER BY codigo
+                """)
+            elif self.system_type == 'almacen':
+                cursor.execute("""
+                    SELECT codigo, nombre, saldo, unidad, valor_unitario, 
+                           stock_minimo, ubicacion, proveedor
+                    FROM productos_almacen ORDER BY codigo
+                """)
+            else:  # poscosecha
+                cursor.execute("""
+                    SELECT codigo, categoria, nombre, saldo, unidad, valor_unitario,
+                           stock_minimo, ubicacion, tipo_producto
+                    FROM productos_poscosecha ORDER BY codigo
+                """)
+            
+            # Cargar datos
+            products_count = 0
+            for row in cursor.fetchall():
+                # Formatear valores
+                formatted_row = list(row)
+                if self.system_type == 'quimicos':
+                    formatted_row[5] = f"${row[5]:,.0f}" if row[5] else "$0"
+                elif self.system_type == 'almacen':
+                    formatted_row[4] = f"${row[4]:,.0f}" if row[4] else "$0"
+                else:  # poscosecha
+                    formatted_row[5] = f"${row[5]:,.0f}" if row[5] else "$0"
+                
+                self.tree.insert('', tk.END, values=formatted_row)
+                products_count += 1
+            
+            # Actualizar contador
+            self.count_label.config(text=f"Total: {products_count} productos")
+            
+            conn.close()
+            
+        except Exception as e:
+            print(f"Error cargando datos de {self.system_type}: {e}")
+    
+    def on_search_change(self, *args):
+        """Manejar cambio en búsqueda"""
+        # Implementar búsqueda en tiempo real si es necesario
+        pass
+    
+    def search_products(self):
+        """Buscar productos"""
+        search_term = self.search_var.get().strip().lower()
+        if not search_term:
+            self.load_data()
+            return
+        
+        try:
+            # Limpiar tabla
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+            
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Query de búsqueda según tipo
+            if self.system_type == 'quimicos':
+                cursor.execute("""
+                    SELECT codigo, clase, nombre, saldo, unidad, valor_unitario, 
+                           ubicacion, proveedor, nivel_peligrosidad
+                    FROM productos_quimicos 
+                    WHERE LOWER(nombre) LIKE ? OR LOWER(codigo) LIKE ? OR LOWER(clase) LIKE ?
+                    ORDER BY codigo
+                """, (f'%{search_term}%', f'%{search_term}%', f'%{search_term}%'))
+            elif self.system_type == 'almacen':
+                cursor.execute("""
+                    SELECT codigo, nombre, saldo, unidad, valor_unitario, 
+                           stock_minimo, ubicacion, proveedor
+                    FROM productos_almacen 
+                    WHERE LOWER(nombre) LIKE ? OR LOWER(codigo) LIKE ?
+                    ORDER BY codigo
+                """, (f'%{search_term}%', f'%{search_term}%'))
+            else:  # poscosecha
+                cursor.execute("""
+                    SELECT codigo, categoria, nombre, saldo, unidad, valor_unitario,
+                           stock_minimo, ubicacion, tipo_producto
+                    FROM productos_poscosecha 
+                    WHERE LOWER(nombre) LIKE ? OR LOWER(codigo) LIKE ? OR LOWER(categoria) LIKE ?
+                    ORDER BY codigo
+                """, (f'%{search_term}%', f'%{search_term}%', f'%{search_term}%'))
+            
+            # Cargar resultados
+            results_count = 0
+            for row in cursor.fetchall():
+                formatted_row = list(row)
+                if self.system_type == 'quimicos':
+                    formatted_row[5] = f"${row[5]:,.0f}" if row[5] else "$0"
+                elif self.system_type == 'almacen':
+                    formatted_row[4] = f"${row[4]:,.0f}" if row[4] else "$0"
+                else:
+                    formatted_row[5] = f"${row[5]:,.0f}" if row[5] else "$0"
+                
+                self.tree.insert('', tk.END, values=formatted_row)
+                results_count += 1
+            
+            self.count_label.config(text=f"Encontrados: {results_count} productos")
+            conn.close()
+            
+        except Exception as e:
+            print(f"Error en búsqueda: {e}")
+    
+    def clear_search(self):
+        """Limpiar búsqueda"""
+        self.search_var.set("")
+        self.load_data()
+    
+    def on_double_click(self, event):
+        """Manejar doble click"""
+        self.edit_product()
+    
+    def get_selected_product(self):
+        """Obtener producto seleccionado"""
+        selection = self.tree.selection()
+        if not selection:
+            messagebox.showwarning("Advertencia", "Selecciona un producto")
+            return None
+        
+        item = self.tree.item(selection[0])
+        return item['values']
+    
+    def new_product(self):
+        """Crear nuevo producto"""
+        ProductFormWindow(self.parent, self, "new")
+    
+    def edit_product(self):
+        """Editar producto"""
+        product = self.get_selected_product()
+        if product:
+            ProductFormWindow(self.parent, self, "edit", product)
+    
+    def delete_product(self):
+        """Eliminar producto"""
+        product = self.get_selected_product()
+        if product:
+            if messagebox.askyesno("Confirmar", f"¿Eliminar el producto {product[0]}?"):
+                try:
+                    conn = sqlite3.connect(self.db_path)
+                    cursor = conn.cursor()
+                    
+                    if self.system_type == 'quimicos':
+                        cursor.execute("DELETE FROM productos_quimicos WHERE codigo = ?", (product[0],))
+                    elif self.system_type == 'almacen':
+                        cursor.execute("DELETE FROM productos_almacen WHERE codigo = ?", (product[0],))
+                    else:
+                        cursor.execute("DELETE FROM productos_poscosecha WHERE codigo = ?", (product[0],))
+                    
+                    conn.commit()
+                    conn.close()
+                    
+                    self.load_data()
+                    messagebox.showinfo("Éxito", "Producto eliminado")
+                    
+                except Exception as e:
+                    messagebox.showerror("Error", f"Error eliminando producto: {e}")
+    
+    def export_products(self):
+        """Exportar productos"""
+        file_path = filedialog.asksaveasfilename(
+            title=f"Exportar {self.system_type}",
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+        )
+        
+        if file_path:
+            try:
+                conn = sqlite3.connect(self.db_path)
+                cursor = conn.cursor()
+                
+                if self.system_type == 'quimicos':
+                    cursor.execute("SELECT * FROM productos_quimicos")
+                elif self.system_type == 'almacen':
+                    cursor.execute("SELECT * FROM productos_almacen")
+                else:
+                    cursor.execute("SELECT * FROM productos_poscosecha")
+                
+                with open(file_path, 'w', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    writer.writerow([description[0] for description in cursor.description])
+                    writer.writerows(cursor.fetchall())
+                
+                conn.close()
+                messagebox.showinfo("Éxito", f"Datos exportados a: {file_path}")
+                
+            except Exception as e:
+                messagebox.showerror("Error", f"Error exportando: {e}")
+    
+    def add_hover_effect(self, button, color):
+        """Agregar efecto hover"""
+        def on_enter(e):
+            button.config(bg=self.darken_color(color))
+        def on_leave(e):
+            button.config(bg=color)
+        
+        button.bind("<Enter>", on_enter)
+        button.bind("<Leave>", on_leave)
+    
+    def darken_color(self, color):
+        """Oscurecer color"""
+        color_map = {
+            '#27ae60': '#229954', '#3498db': '#2980b9', '#e74c3c': '#c0392b', '#f39c12': '#e67e22'
+        }
+        return color_map.get(color, color)
+
+
+# ================= FORMULARIO DE PRODUCTOS =================
+
+class ProductFormWindow:
+    """Formulario para crear/editar productos"""
+    
+    def __init__(self, parent, tab, mode, product_data=None):
+        self.parent = parent
+        self.tab = tab
+        self.mode = mode  # "new" o "edit"
+        self.product_data = product_data
+        
+        self.window = tk.Toplevel(parent)
+        title = f"{'Editar' if mode == 'edit' else 'Nuevo'} Producto - {tab.system_type.title()}"
+        self.window.title(title)
+        self.window.geometry("500x600")
+        self.window.configure(bg='#f8f9fa')
+        
+        self.center_window()
+        self.window.transient(parent)
+        self.window.grab_set()
+        
+        self.create_form()
+        
+        if mode == "edit" and product_data:
+            self.load_product_data()
+    
+    def center_window(self):
+        """Centrar ventana"""
+        self.window.update_idletasks()
+        x = (self.window.winfo_screenwidth() // 2) - (500 // 2)
+        y = (self.window.winfo_screenheight() // 2) - (600 // 2)
+        self.window.geometry(f"500x600+{x}+{y}")
+    
+    def create_form(self):
+        """Crear formulario"""
+        # Header
+        header = tk.Frame(self.window, bg=self.tab.color, height=60)
+        header.pack(fill=tk.X)
+        header.pack_propagate(False)
+        
+        title = f"{'Editar' if self.mode == 'edit' else 'Nuevo'} Producto"
+        title_label = tk.Label(header, text=title,
+                              font=('Arial', 16, 'bold'),
+                              bg=self.tab.color, fg='white')
+        title_label.pack(expand=True)
+        
+        # Formulario
+        form_frame = tk.Frame(self.window, bg='white')
+        form_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        # Campos según tipo de sistema
+        self.create_form_fields(form_frame)
+        
+        # Botones
+        self.create_form_buttons(form_frame)
+    
+    def create_form_fields(self, parent):
+        """Crear campos del formulario"""
+        self.entries = {}
+        row = 0
+        
+        # Campos comunes
+        common_fields = [
+            ("Código:", "codigo"),
+            ("Nombre:", "nombre"),
+            ("Saldo:", "saldo"),
+            ("Unidad:", "unidad"),
+            ("Valor Unitario:", "valor_unitario"),
+            ("Ubicación:", "ubicacion"),
+            ("Proveedor:", "proveedor")
+        ]
+        
+        # Campos específicos por sistema
+        if self.tab.system_type == 'quimicos':
+            specific_fields = [
+                ("Clase:", "clase"),
+                ("Nivel Peligrosidad:", "nivel_peligrosidad"),
+                ("Fecha Vencimiento:", "fecha_vencimiento")
+            ]
+        elif self.tab.system_type == 'almacen':
+            specific_fields = [
+                ("Stock Mínimo:", "stock_minimo")
+            ]
+        else:  # poscosecha
+            specific_fields = [
+                ("Categoría:", "categoria"),
+                ("Stock Mínimo:", "stock_minimo"),
+                ("Tipo Producto:", "tipo_producto")
+            ]
+        
+        # Crear campos
+        all_fields = common_fields + specific_fields
+        
+        for label_text, field_name in all_fields:
+            # Label
+            label = tk.Label(parent, text=label_text,
+                           font=('Arial', 10, 'bold'),
+                           bg='white', fg='#2c3e50')
+            label.grid(row=row, column=0, sticky='w', pady=8, padx=(0, 10))
+            
+            # Entry o Combobox
+            if field_name in ['clase', 'nivel_peligrosidad', 'categoria', 'tipo_producto', 'unidad']:
+                # Combobox para campos con opciones predefinidas
+                values = self.get_field_options(field_name)
+                widget = ttk.Combobox(parent, values=values, width=35)
+            else:
+                # Entry normal
+                widget = tk.Entry(parent, width=38, font=('Arial', 10))
+            
+            widget.grid(row=row, column=1, pady=8, sticky='ew')
+            self.entries[field_name] = widget
+            row += 1
+        
+        parent.grid_columnconfigure(1, weight=1)
+    
+    def get_field_options(self, field_name):
+        """Obtener opciones para combobox"""
+        options = {
+            'clase': ['ACARICIDA', 'FUNGICIDA', 'INSECTICIDA', 'HERBICIDA', 'FERTILIZANTE', 'REGULADOR'],
+            'nivel_peligrosidad': ['BAJO', 'MEDIO', 'ALTO'],
+            'categoria': ['EMBALAJE', 'QUIMICO', 'ETIQUETA', 'HERRAMIENTA', 'GENERAL'],
+            'tipo_producto': ['EMPAQUE', 'TRATAMIENTO', 'IDENTIFICACION', 'LIMPIEZA', 'GENERAL'],
+            'unidad': ['ML', 'LT', 'KG', 'GR', 'UND', 'MT', 'M2']
+        }
+        return options.get(field_name, [])
+    
+    def create_form_buttons(self, parent):
+        """Crear botones del formulario"""
+        btn_frame = tk.Frame(parent, bg='white')
+        btn_frame.grid(row=20, column=0, columnspan=2, pady=20)
+        
+        # Botón guardar
+        save_text = "Actualizar" if self.mode == "edit" else "Guardar"
+        save_btn = tk.Button(btn_frame, text=save_text, command=self.save_product,
+                           bg=self.tab.color, fg='white', font=('Arial', 11, 'bold'),
+                           relief='flat', bd=0, padx=20, pady=10, cursor='hand2')
+        save_btn.pack(side=tk.LEFT, padx=10)
+        
+        # Botón cancelar
+        cancel_btn = tk.Button(btn_frame, text="Cancelar", command=self.window.destroy,
+                             bg='#95a5a6', fg='white', font=('Arial', 11, 'bold'),
+                             relief='flat', bd=0, padx=20, pady=10, cursor='hand2')
+        cancel_btn.pack(side=tk.LEFT, padx=10)
+    
+    def load_product_data(self):
+        """Cargar datos del producto para edición"""
+        if not self.product_data:
+            return
+        
+        # Mapear datos según tipo de sistema
+        if self.tab.system_type == 'quimicos':
+            mapping = {
+                'codigo': 0, 'clase': 1, 'nombre': 2, 'saldo': 3, 'unidad': 4,
+                'valor_unitario': 5, 'ubicacion': 6, 'proveedor': 7, 'nivel_peligrosidad': 8
+            }
+        elif self.tab.system_type == 'almacen':
+            mapping = {
+                'codigo': 0, 'nombre': 1, 'saldo': 2, 'unidad': 3,
+                'valor_unitario': 4, 'stock_minimo': 5, 'ubicacion': 6, 'proveedor': 7
+            }
+        else:  # poscosecha
+            mapping = {
+                'codigo': 0, 'categoria': 1, 'nombre': 2, 'saldo': 3, 'unidad': 4,
+                'valor_unitario': 5, 'stock_minimo': 6, 'ubicacion': 7, 'tipo_producto': 8
+            }
+        
+        # Cargar datos en los campos
+        for field_name, widget in self.entries.items():
+            if field_name in mapping:
+                index = mapping[field_name]
+                if index < len(self.product_data):
+                    value = self.product_data[index]
+                    if value is not None:
+                        if isinstance(widget, ttk.Combobox):
+                            widget.set(str(value))
+                        else:
+                            widget.delete(0, tk.END)
+                            widget.insert(0, str(value))
+    
+    def save_product(self):
+        """Guardar producto"""
+        try:
+            # Validar campos requeridos
+            required_fields = ['codigo', 'nombre', 'saldo', 'unidad', 'valor_unitario']
+            for field in required_fields:
+                if field in self.entries and not self.entries[field].get().strip():
+                    messagebox.showerror("Error", f"El campo {field} es obligatorio")
+                    self.entries[field].focus()
+                    return
+            
+            # Preparar datos
+            data = {}
+            for field_name, widget in self.entries.items():
+                value = widget.get().strip()
+                if field_name in ['saldo', 'stock_minimo']:
+                    data[field_name] = int(value) if value else 0
+                elif field_name == 'valor_unitario':
+                    data[field_name] = float(value) if value else 0.0
+                else:
+                    data[field_name] = value
+            
+            # Conectar a base de datos
+            conn = sqlite3.connect(self.tab.db_path)
+            cursor = conn.cursor()
+            
+            if self.mode == "new":
+                # Verificar código único
+                table_name = f"productos_{self.tab.system_type}"
+                cursor.execute(f"SELECT id FROM {table_name} WHERE codigo = ?", (data['codigo'],))
+                if cursor.fetchone():
+                    messagebox.showerror("Error", "El código ya existe")
+                    return
+                
+                # Insertar nuevo producto
+                self.insert_new_product(cursor, data)
+                message = "Producto creado exitosamente"
+            else:
+                # Actualizar producto existente
+                self.update_existing_product(cursor, data)
+                message = "Producto actualizado exitosamente"
+            
+            conn.commit()
+            conn.close()
+            
+            messagebox.showinfo("Éxito", message)
+            self.tab.load_data()
+            
+            if self.mode == "new":
+                self.clear_form()
+            else:
+                self.window.destroy()
+                
+        except ValueError as e:
+            messagebox.showerror("Error", "Valores numéricos inválidos")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error guardando producto: {e}")
+    
+    def insert_new_product(self, cursor, data):
+        """Insertar nuevo producto"""
+        if self.tab.system_type == 'quimicos':
+            cursor.execute('''
+                INSERT INTO productos_quimicos 
+                (codigo, clase, nombre, saldo, unidad, valor_unitario, ubicacion, proveedor, nivel_peligrosidad, fecha_vencimiento)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                data['codigo'], data.get('clase', ''), data['nombre'], data['saldo'],
+                data['unidad'], data['valor_unitario'], data.get('ubicacion', ''),
+                data.get('proveedor', ''), data.get('nivel_peligrosidad', 'MEDIO'),
+                data.get('fecha_vencimiento', '') or None
+            ))
+        elif self.tab.system_type == 'almacen':
+            cursor.execute('''
+                INSERT INTO productos_almacen 
+                (codigo, nombre, saldo, unidad, valor_unitario, stock_minimo, ubicacion, proveedor)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                data['codigo'], data['nombre'], data['saldo'], data['unidad'],
+                data['valor_unitario'], data.get('stock_minimo', 0),
+                data.get('ubicacion', ''), data.get('proveedor', '')
+            ))
+        else:  # poscosecha
+            cursor.execute('''
+                INSERT INTO productos_poscosecha 
+                (codigo, categoria, nombre, saldo, unidad, valor_unitario, stock_minimo, ubicacion, proveedor, tipo_producto)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                data['codigo'], data.get('categoria', ''), data['nombre'], data['saldo'],
+                data['unidad'], data['valor_unitario'], data.get('stock_minimo', 0),
+                data.get('ubicacion', ''), data.get('proveedor', ''), data.get('tipo_producto', '')
+            ))
+    
+    def update_existing_product(self, cursor, data):
+        """Actualizar producto existente"""
+        codigo_original = self.product_data[0]
+        
+        if self.tab.system_type == 'quimicos':
+            cursor.execute('''
+                UPDATE productos_quimicos SET 
+                codigo=?, clase=?, nombre=?, saldo=?, unidad=?, valor_unitario=?, 
+                ubicacion=?, proveedor=?, nivel_peligrosidad=?, fecha_vencimiento=?
+                WHERE codigo=?
+            ''', (
+                data['codigo'], data.get('clase', ''), data['nombre'], data['saldo'],
+                data['unidad'], data['valor_unitario'], data.get('ubicacion', ''),
+                data.get('proveedor', ''), data.get('nivel_peligrosidad', 'MEDIO'),
+                data.get('fecha_vencimiento', '') or None, codigo_original
+            ))
+        elif self.tab.system_type == 'almacen':
+            cursor.execute('''
+                UPDATE productos_almacen SET 
+                codigo=?, nombre=?, saldo=?, unidad=?, valor_unitario=?, 
+                stock_minimo=?, ubicacion=?, proveedor=?
+                WHERE codigo=?
+            ''', (
+                data['codigo'], data['nombre'], data['saldo'], data['unidad'],
+                data['valor_unitario'], data.get('stock_minimo', 0),
+                data.get('ubicacion', ''), data.get('proveedor', ''), codigo_original
+            ))
+        else:  # poscosecha
+            cursor.execute('''
+                UPDATE productos_poscosecha SET 
+                codigo=?, categoria=?, nombre=?, saldo=?, unidad=?, valor_unitario=?, 
+                stock_minimo=?, ubicacion=?, proveedor=?, tipo_producto=?
+                WHERE codigo=?
+            ''', (
+                data['codigo'], data.get('categoria', ''), data['nombre'], data['saldo'],
+                data['unidad'], data['valor_unitario'], data.get('stock_minimo', 0),
+                data.get('ubicacion', ''), data.get('proveedor', ''), 
+                data.get('tipo_producto', ''), codigo_original
+            ))
+    
+    def clear_form(self):
+        """Limpiar formulario"""
+        for widget in self.entries.values():
+            if isinstance(widget, ttk.Combobox):
+                widget.set('')
+            else:
+                widget.delete(0, tk.END)
+
+
+# ================= RESTO DE CLASES (EmpleadosWindow, etc.) =================
+
 class EmpleadosWindow:
     def __init__(self, parent, main_window, modo="nuevo", empleado=None):
         self.parent = parent
@@ -383,13 +1624,13 @@ class EmpleadosWindow:
         main_frame = ttk.Frame(self.window, padding="20")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        # Título con emoji
-        titulo_texto = "✏️ Editar Empleado" if self.modo == "editar" else "➕ Registrar Nuevo Empleado"
+        # Título
+        titulo_texto = "Editar Empleado" if self.modo == "editar" else "Registrar Nuevo Empleado"
         title_label = tk.Label(main_frame, text=titulo_texto, font=('Arial', 16, 'bold'),
                               bg='#ecf0f1', fg='#2c3e50')
         title_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
         
-        # Campos con mejor estilo
+        # Campos
         campos = [
             ("Nombre Completo:", "entry_nombre"),
             ("Cedula:", "entry_cedula"),
@@ -419,31 +1660,30 @@ class EmpleadosWindow:
             self.combo_estado = ttk.Combobox(main_frame, values=["Activo", "Inactivo"], width=27, font=('Arial', 10))
             self.combo_estado.grid(row=9, column=1, pady=8)
         
-        # Botones con colores
+        # Botones
         btn_frame = tk.Frame(main_frame, bg='#ecf0f1')
         btn_row = 10 if self.modo == "editar" else 9
         btn_frame.grid(row=btn_row, column=0, columnspan=2, pady=25)
         
         # Botón principal
-        texto_boton = "💾 Actualizar" if self.modo == "editar" else "💾 Guardar"
+        texto_boton = "Actualizar" if self.modo == "editar" else "Guardar"
         save_btn = tk.Button(btn_frame, text=texto_boton, command=self.guardar_empleado,
                            bg="#27ae60", fg="white", font=('Arial', 10, 'bold'),
                            relief='flat', padx=20, pady=8, cursor='hand2')
         save_btn.pack(side=tk.LEFT, padx=5)
         
         # Botón limpiar
-        clear_btn = tk.Button(btn_frame, text="🗑️ Limpiar", command=self.limpiar_campos,
+        clear_btn = tk.Button(btn_frame, text="Limpiar", command=self.limpiar_campos,
                             bg="#f39c12", fg="white", font=('Arial', 10, 'bold'),
                             relief='flat', padx=20, pady=8, cursor='hand2')
         clear_btn.pack(side=tk.LEFT, padx=5)
         
         # Botón cerrar
-        close_btn = tk.Button(btn_frame, text="❌ Cerrar", command=self.window.destroy,
+        close_btn = tk.Button(btn_frame, text="Cerrar", command=self.window.destroy,
                             bg="#e74c3c", fg="white", font=('Arial', 10, 'bold'),
                             relief='flat', padx=20, pady=8, cursor='hand2')
         close_btn.pack(side=tk.LEFT, padx=5)
     
-    # RESTO DE FUNCIONES IGUAL...
     def cargar_datos_empleado(self):
         """Cargar datos del empleado en el formulario"""
         if not self.empleado:
@@ -474,7 +1714,7 @@ class EmpleadosWindow:
                 self.entry_cedula.focus()
                 return
             
-            # Validar cédula única (solo para nuevos o si cambió)
+            # Validar cédula única
             cedula_nueva = self.entry_cedula.get().strip()
             if self.modo == "nuevo" or (self.empleado and self.empleado.cedula != cedula_nueva):
                 cedula_existente = self.db.query(Empleado).filter(Empleado.cedula == cedula_nueva).first()
@@ -549,7 +1789,6 @@ class EmpleadosWindow:
         self.combo_area.set('')
         self.entry_cargo.delete(0, tk.END)
         self.entry_salario.delete(0, tk.END)
-       
         
         if hasattr(self, 'combo_estado'):
             self.combo_estado.set('Activo')
