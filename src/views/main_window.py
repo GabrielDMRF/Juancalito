@@ -5,6 +5,11 @@ import os
 import sqlite3
 from datetime import datetime, date
 import csv
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from alerts.notification_system import abrir_centro_alertas
+
+
 
 # Agregar path para importar modelos
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -67,7 +72,7 @@ class MainWindow:
             ("Editar Empleado", self.editar_empleado, "#3498db"),
             ("Contratos", self.abrir_contratos, "#8e44ad"), 
             ("Inventarios", self.abrir_inventarios, "#1abc9c"),
-            ("Centro Alertas", self.abrir_centro_alertas, "#e74c3c"),
+            ("Centro Alertas", lambda: abrir_centro_alertas(self.root), "#e74c3c"),
             ("X Inactivar", self.inactivar_empleado, "#e67e22"),
             ("Reportes", self.abrir_reportes, "#9b59b6")
         ]
@@ -353,6 +358,7 @@ class MainWindow:
         except Exception as e:
             print(f"Error abriendo inventarios: {e}")
             messagebox.showerror("Error", f"Error al abrir inventarios: {e}")
+    
 
 
 # ================= SISTEMA COMPLETO DE INVENTARIOS =================

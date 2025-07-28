@@ -81,7 +81,7 @@ class AlertsManager:
         if self.alert_config['enable_notifications']:
             monitor_thread = threading.Thread(target=self.monitoring_loop, daemon=True)
             monitor_thread.start()
-            print("✅ Sistema de alertas iniciado")
+            print("[OK] Sistema de alertas iniciado")
     
     def monitoring_loop(self):
         """Bucle principal de monitoreo"""
@@ -305,7 +305,9 @@ class AlertsManager:
                 'created_at': datetime.now()
             })
             
-            print(f"🚨 ALERTA {severity}: {title}")
+            print(f"[ALERTA {severity}] {title}")
+
+
             
         except Exception as e:
             print(f"Error creando alerta: {e}")
