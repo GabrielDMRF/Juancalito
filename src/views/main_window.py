@@ -67,6 +67,7 @@ class MainWindow:
             ("Editar Empleado", self.editar_empleado, "#3498db"),
             ("Contratos", self.abrir_contratos, "#8e44ad"), 
             ("Inventarios", self.abrir_inventarios, "#1abc9c"),
+            ("Centro Alertas", self.abrir_centro_alertas, "#e74c3c"),
             ("X Inactivar", self.inactivar_empleado, "#e67e22"),
             ("Reportes", self.abrir_reportes, "#9b59b6")
         ]
