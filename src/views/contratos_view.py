@@ -35,7 +35,7 @@ class ContratosWindow:
                         font=('Arial', 18, 'bold'), bg='#ecf0f1', fg='#2c3e50')
         title.grid(row=0, column=0, columnspan=4, pady=(0, 20))
         
-        # Botones principales
+        # Botones principales - SECCIÓN CORREGIDA
         btn_frame = tk.Frame(main_frame, bg='#ecf0f1')
         btn_frame.grid(row=1, column=0, columnspan=4, pady=(0, 20))
         
@@ -43,6 +43,7 @@ class ContratosWindow:
             ("➕ Nuevo Contrato", self.nuevo_contrato, "#27ae60"),
             ("✏️ Editar Contrato", self.editar_contrato, "#3498db"),
             ("👁️ Ver Detalles", self.ver_contrato, "#f39c12"),
+            ("📄 Generar Excel", self.generar_contrato_excel, "#16a085"),  # COMA CORREGIDA
             ("❌ Cerrar", self.window.destroy, "#e74c3c")
         ]
         
@@ -154,6 +155,28 @@ class ContratosWindow:
         contrato = self.get_selected_contrato()
         if contrato:
             DetallesContratoWindow(self.window, contrato)
+    
+    # MÉTODO NUEVO AGREGADO
+    def generar_contrato_excel(self):
+        """Generar contrato en Excel"""
+        contrato = self.get_selected_contrato()
+        if contrato:
+            try:
+                # Intentar importar y usar el generador de Excel
+                from utils.contrato_excel_generator import abrir_generador_contratos_excel
+                abrir_generador_contratos_excel(self.window, self, contrato)
+            except ImportError:
+                # Si no está el módulo, mostrar mensaje informativo
+                messagebox.showinfo("Generar Excel", 
+                    f"Funcionalidad de generación de contratos Excel.\n\n" +
+                    f"Contrato seleccionado: {contrato.numero_contrato}\n" +
+                    f"Empleado: {contrato.empleado.nombre_completo}\n\n" +
+                    "Para activar esta función:\n" +
+                    "1. Instalar: pip install openpyxl\n" +
+                    "2. Agregar archivo contrato_excel_generator.py en utils/")
+            except Exception as e:
+                messagebox.showerror("Error", f"Error abriendo generador Excel: {e}")
+
 
 class NuevoContratoWindow:
     def __init__(self, parent, contratos_window, contrato=None):
@@ -407,6 +430,7 @@ class NuevoContratoWindow:
         self.entry_salario.delete(0, tk.END)
         self.entry_subsidio.delete(0, tk.END)
         self.entry_subsidio.insert(0, "140606")
+
 
 class DetallesContratoWindow:
     def __init__(self, parent, contrato):
