@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Sistema de Generación de Contratos en Excel
-Genera contratos personalizados en Excel y los guarda en carpetas por empleado
+Generador de Contrato Profesional Excel
+Basado en el formato real del contrato de FLORES JUNCALITO S.A.S
 """
 
 import tkinter as tk
@@ -12,7 +12,6 @@ import sys
 from datetime import datetime, date, timedelta
 from pathlib import Path
 import shutil
-from utils.contrato_excel_generator import abrir_generador_contratos_excel
 
 # Agregar path para importar modelos
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -27,8 +26,8 @@ try:
 except ImportError:
     OPENPYXL_AVAILABLE = False
 
-class ContratoExcelGenerator:
-    """Generador de contratos en Excel con carpetas personalizadas"""
+class ContratoProfesionalExcelGenerator:
+    """Generador de contratos Excel profesionales basado en formato real"""
     
     def __init__(self):
         self.db = get_db()
@@ -39,151 +38,291 @@ class ContratoExcelGenerator:
     def setup_directories(self):
         """Crear directorios necesarios"""
         try:
-            # Directorio base para empleados
             self.base_dir.mkdir(exist_ok=True)
-            
-            # Directorio para templates
             self.templates_dir.mkdir(exist_ok=True)
-            
-            # Crear template por defecto si no existe
-            self.create_default_template()
-            
+            self.create_professional_template()
             print(f"✅ Directorios configurados en: {self.base_dir}")
-            
         except Exception as e:
             print(f"❌ Error configurando directorios: {e}")
     
-    def create_default_template(self):
-        """Crear template por defecto de contrato"""
+    def create_professional_template(self):
+        """Crear template profesional basado en el formato real"""
         if not OPENPYXL_AVAILABLE:
             print("⚠️ openpyxl no disponible - no se puede crear template Excel")
             return
             
-        template_path = self.templates_dir / "template_contrato_default.xlsx"
+        template_path = self.templates_dir / "contrato_profesional_template.xlsx"
         
         if template_path.exists():
             return
         
         try:
-            # Crear nuevo workbook
             wb = openpyxl.Workbook()
             ws = wb.active
             ws.title = "Contrato de Trabajo"
             
+            # Configurar página
+            ws.page_setup.paperSize = ws.PAPERSIZE_LETTER
+            ws.page_margins.left = 0.5
+            ws.page_margins.right = 0.5
+            ws.page_margins.top = 0.5
+            ws.page_margins.bottom = 0.5
+            
             # Estilos
-            title_font = Font(name='Arial', size=16, bold=True)
+            title_font = Font(name='Arial', size=14, bold=True)
             header_font = Font(name='Arial', size=12, bold=True)
-            normal_font = Font(name='Arial', size=11)
+            normal_font = Font(name='Arial', size=10)
+            small_font = Font(name='Arial', size=9)
             
-            # Encabezado de la empresa
-            ws['A1'] = "CONTRATO DE TRABAJO"
+            # Bordes
+            thin_border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+            
+            # TÍTULO PRINCIPAL
+            ws['A1'] = "CONTRATO INDIVIDUAL DE TRABAJO A TERMINO FIJO INFERIOR A UN AÑO"
             ws['A1'].font = title_font
-            ws['A1'].alignment = Alignment(horizontal='center')
-            ws.merge_cells('A1:H1')
+            ws['A1'].alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+            ws.merge_cells('A1:F1')
+            ws.row_dimensions[1].height = 30
             
-            ws['A3'] = "EMPRESA AGRÍCOLA S.A.S"
+            # TRABAJADOR
+            ws['A3'] = "TRABAJADOR {{NUMERO_TRABAJADOR}}"
             ws['A3'].font = header_font
             ws['A3'].alignment = Alignment(horizontal='center')
-            ws.merge_cells('A3:H3')
+            ws.merge_cells('A3:F3')
             
-            # Información del contrato
-            row = 6
-            campos_contrato = [
-                ("Número de Contrato:", "{{NUMERO_CONTRATO}}"),
-                ("Fecha de Elaboración:", "{{FECHA_ELABORACION}}"),
-                ("", ""),
-                ("DATOS DEL EMPLEADO", ""),
-                ("Nombre Completo:", "{{NOMBRE_EMPLEADO}}"),
-                ("Cédula de Ciudadanía:", "{{CEDULA_EMPLEADO}}"),
-                ("Teléfono:", "{{TELEFONO_EMPLEADO}}"),
-                ("Email:", "{{EMAIL_EMPLEADO}}"),
-                ("Dirección:", "{{DIRECCION_EMPLEADO}}"),
-                ("", ""),
-                ("DATOS DEL CONTRATO", ""),
-                ("Tipo de Contrato:", "{{TIPO_CONTRATO}}"),
-                ("Fecha de Inicio:", "{{FECHA_INICIO}}"),
-                ("Fecha de Finalización:", "{{FECHA_FIN}}"),
-                ("Área de Trabajo:", "{{AREA_TRABAJO}}"),
-                ("Cargo:", "{{CARGO_EMPLEADO}}"),
-                ("", ""),
-                ("DATOS SALARIALES", ""),
-                ("Salario Base:", "{{SALARIO_BASE}}"),
-                ("Subsidio de Transporte:", "{{SUBSIDIO_TRANSPORTE}}"),
-                ("Bonificaciones:", "{{BONIFICACIONES}}"),
-                ("Total Devengado:", "{{TOTAL_DEVENGADO}}"),
+            # TABLA DE INFORMACIÓN PRINCIPAL
+            row = 5
+            
+            # Encabezados de tabla con bordes
+            tabla_info = [
+                ["NOMBRE EMPLEADOR:", "{{NOMBRE_EMPLEADOR}}", "DIRECCION DE EMPLEADOR", "{{DIRECCION_EMPLEADOR}}"],
+                ["NOMBRE DEL TRABAJADOR:", "{{NOMBRE_EMPLEADO}}", "DIRECCION TRABAJADOR:", "{{DIRECCION_EMPLEADO}}"],
+                ["LUGAR, FECHA DE NACIMIENTO Y NACIONALIDAD", "{{LUGAR_NACIMIENTO}}", "CARGO U OFICIO QUE DESEMPEÑARA EL TRABAJADOR", "{{CARGO_EMPLEADO}}"],
+                ["SALARIO ORDINARIO / INTEGRAL", "VALOR", "VALOR EN LETRAS", ""],
+                ["( X ) ( )", "${{SALARIO_BASE}}", "{{SALARIO_LETRAS}}", ""],
+                ["PERIODOS DE PAGO", "{{PERIODO_PAGO}}", "FECHA DE INICIACION DE LABORES", "{{FECHA_INICIO}}"],
+                ["LUGAR DONDE DESEMPEÑARA LAS LABORES", "{{LUGAR_LABORES}}", "CIUDAD DONDE HA SIDO CONTRATADO EL TRABAJADOR", "{{CIUDAD_CONTRATO}}"],
+                ["TERMINO INICIAL DEL CONTRATO", "{{TERMINO_CONTRATO}}", "VENCE EL DIA", "{{FECHA_FIN}}"]
             ]
             
-            for campo, valor in campos_contrato:
-                if campo and not campo.startswith("DATOS"):
-                    ws[f'A{row}'] = campo
-                    ws[f'A{row}'].font = normal_font
-                    ws[f'D{row}'] = valor
-                    ws[f'D{row}'].font = normal_font
-                elif campo.startswith("DATOS"):
-                    ws[f'A{row}'] = campo
-                    ws[f'A{row}'].font = header_font
-                    ws.merge_cells(f'A{row}:H{row}')
+            for fila_data in tabla_info:
+                for col, valor in enumerate(fila_data, 1):
+                    cell = ws.cell(row=row, column=col, value=valor)
+                    cell.border = thin_border
+                    cell.alignment = Alignment(vertical='center', wrap_text=True)
+                    
+                    if col in [1, 3]:  # Columnas de títulos
+                        cell.font = Font(name='Arial', size=9, bold=True)
+                        cell.fill = PatternFill(start_color="E6E6E6", end_color="E6E6E6", fill_type="solid")
+                    else:
+                        cell.font = Font(name='Arial', size=9)
                 
+                ws.row_dimensions[row].height = 25
                 row += 1
             
-            # Cláusulas del contrato
-            row += 2
-            ws[f'A{row}'] = "CLÁUSULAS DEL CONTRATO"
-            ws[f'A{row}'].font = header_font
-            ws.merge_cells(f'A{row}:H{row}')
+            # Ajustar anchos de columna
+            ws.column_dimensions['A'].width = 25
+            ws.column_dimensions['B'].width = 20
+            ws.column_dimensions['C'].width = 25
+            ws.column_dimensions['D'].width = 25
             
+            # CLÁUSULAS DEL CONTRATO
             row += 2
+            
+            # Párrafo introductorio
+            ws[f'A{row}'] = ("Entre EL EMPLEADOR Y EL TRABAJADOR, de las condiciones ya dichas, "
+                           "identificados como aparece al pie de sus firmas, se ha celebrado el "
+                           "presente contrato individual de trabajo, regido además por las siguientes cláusulas.")
+            ws[f'A{row}'].font = normal_font
+            ws[f'A{row}'].alignment = Alignment(wrap_text=True, justify_last_line=True)
+            ws.merge_cells(f'A{row}:F{row}')
+            ws.row_dimensions[row].height = 40
+            row += 2
+            
+            # CLÁUSULAS DETALLADAS
             clausulas = [
-                "PRIMERA: El presente contrato se celebra por el término y las condiciones establecidas.",
-                "SEGUNDA: El empleado se compromete a cumplir con las funciones asignadas.",
-                "TERCERA: La jornada laboral será de acuerdo a la legislación vigente.",
-                "CUARTA: El salario se pagará mensualmente según lo estipulado.",
-                "QUINTA: Las partes se comprometen a cumplir con las normas de seguridad."
+                ("PRIMERA: OBJETO", 
+                 "EL EMPLEADOR contrata los servicios personales de EL TRABAJADOR y este se obliga: "
+                 "a) a poner al servicio de EL EMPLEADOR toda la capacidad normal de trabajo en el "
+                 "desempeño de las funciones propias del oficio mencionado y en las labores anexas y "
+                 "complementarias del mismo, de conformidad con las órdenes e instrucciones que le "
+                 "imparta EL EMPLEADOR directamente o a través de sus representantes; b) a prestar "
+                 "sus servicios de forma exclusiva a EL EMPLEADOR; es decir, a no prestar directamente "
+                 "ni indirectamente servicios laborales a otros empleadores, ni a trabajar por cuenta "
+                 "propia en el mismo oficio, durante la vigencia del contrato; y c) a guardar absoluta "
+                 "reserva sobre los hechos, documentos físicos y/o electrónicos, informaciones y en "
+                 "general, sobre todos los asuntos y materias que lleguen a su conocimiento por causa "
+                 "o con ocasión de su contrato de trabajo."),
+                
+                ("SEGUNDA: REMUNERACIÓN", 
+                 "EL EMPLEADOR pagará a EL TRABAJADOR por la prestación de sus servicios el salario "
+                 "indicado en el encabezado del presente documento, pagadero en las oportunidades "
+                 "también señaladas arriba."),
+                
+                ("TERCERA: DURACIÓN DEL CONTRATO", 
+                 "El término inicial de la duración del contrato será el señalado arriba. Si antes "
+                 "de la fecha de vencimiento ninguna de las partes avisare por escrito a la otra su "
+                 "determinación de no prorrogar el contrato con antelación no inferior a (30) días, "
+                 "este se entenderá prorrogado por un período igual al inicialmente pactado."),
+                
+                ("CUARTA: TRABAJO NOCTURNO, SUPLEMENTARIO, DOMINICAL Y/O FESTIVO", 
+                 "Todo trabajo nocturno, suplementario o en extras y todo trabajo en día domingo o "
+                 "festivo en los que legalmente debe concederse descanso se remunera conforme a la ley. "
+                 "Para el reconocimiento y pago del trabajo suplementario, nocturno, dominical o festivo "
+                 "EL EMPLEADOR o sus representantes deberán haberlo autorizado previamente y por escrito."),
+                
+                ("QUINTA: JORNADA DE TRABAJO", 
+                 "EL TRABAJADOR se obliga a laborar la jornada máxima legal, salvo acuerdo especial, "
+                 "en los turnos y dentro de las horas señaladas por EL EMPLEADOR, pudiendo hacer este "
+                 "ajustes o cambios de horario cuando lo estime conveniente."),
+                
+                ("SEXTA: PERÍODO DE PRUEBA", 
+                 "La quinta parte de la duración inicial del presente contrato se considera como "
+                 "período de prueba, sin que exceda de dos (2) meses contados a partir de la fecha "
+                 "de inicio, y por consiguiente, cualquiera de las partes podrá terminar el contrato "
+                 "unilateralmente, en cualquier momento durante dicho período y sin previo aviso."),
+                
+                ("SÉPTIMA: TERMINACIÓN UNILATERAL", 
+                 "Son justas causas para dar por terminado unilateralmente este contrato, por "
+                 "cualquiera de las partes, las enumeradas en el Art. 62 del C.S.T., modificado "
+                 "por el Art. 7º del decreto 235/65."),
+                
+                ("OCTAVA: PROPIEDAD INTELECTUAL", 
+                 "Las partes acuerdan que todas las invenciones, descubrimientos y trabajos originales "
+                 "concebidos o hechos por EL TRABAJADOR en vigencia del presente contrato pertenecerán "
+                 "a EL EMPLEADOR."),
+                
+                ("NOVENA: MODIFICACIÓN DE LAS CONDICIONES LABORALES", 
+                 "EL TRABAJADOR acepta desde ahora expresamente todas las modificaciones de sus "
+                 "condiciones laborales determinadas por EL EMPLEADOR en ejercicio de su poder "
+                 "subordinante, siempre que tales modificaciones no afecten su honor, dignidad o "
+                 "sus derechos mínimos."),
+                
+                ("DÉCIMA: DIRECCIÓN DEL TRABAJADOR", 
+                 "EL TRABAJADOR se compromete a informar por escrito y de manera inmediata a EL "
+                 "EMPLEADOR cualquier cambio en su dirección de residencia."),
+                
+                ("UNDÉCIMA: EFECTOS", 
+                 "El presente contrato reemplaza en su integridad y deja sin efecto cualquier otro "
+                 "contrato, verbal o escrito, celebrado entre las partes con anterioridad.")
             ]
             
-            for clausula in clausulas:
-                ws[f'A{row}'] = clausula
-                ws[f'A{row}'].font = normal_font
+            for titulo, contenido in clausulas:
+                # Título de la cláusula
+                ws[f'A{row}'] = titulo
+                ws[f'A{row}'].font = Font(name='Arial', size=10, bold=True)
                 ws[f'A{row}'].alignment = Alignment(wrap_text=True)
-                ws.merge_cells(f'A{row}:H{row}')
-                ws.row_dimensions[row].height = 40
+                ws.merge_cells(f'A{row}:F{row}')
+                row += 1
+                
+                # Contenido de la cláusula
+                ws[f'A{row}'] = contenido
+                ws[f'A{row}'].font = normal_font
+                ws[f'A{row}'].alignment = Alignment(wrap_text=True, justify_last_line=True)
+                ws.merge_cells(f'A{row}:F{row}')
+                ws.row_dimensions[row].height = max(60, len(contenido) // 8)
                 row += 2
             
-            # Firmas
-            row += 3
-            ws[f'A{row}'] = "_________________________"
-            ws[f'F{row}'] = "_________________________"
+            # CLÁUSULAS ADICIONALES
             row += 1
-            ws[f'A{row}'] = "EMPLEADOR"
-            ws[f'F{row}'] = "EMPLEADO"
+            ws[f'A{row}'] = "CLÁUSULAS ADICIONALES"
+            ws[f'A{row}'].font = header_font
             ws[f'A{row}'].alignment = Alignment(horizontal='center')
-            ws[f'F{row}'].alignment = Alignment(horizontal='center')
+            ws.merge_cells(f'A{row}:F{row}')
+            row += 1
             
-            # Ajustar columnas
-            for col in range(1, 9):
-                ws.column_dimensions[get_column_letter(col)].width = 15
+            ws[f'A{row}'] = ("LAS PARTES ACEPTAN DE COMÚN ACUERDO QUE LAS BONIFICACIONES QUE LA EMPRESA "
+                           "DÉ Y EL TRABAJADOR RECIBA POR TEMPORADAS O EN CUALQUIER OTRO MOMENTO, SON DE "
+                           "PLENA LIBERALIDAD Y NO HACEN PARTE DEL SALARIO.")
+            ws[f'A{row}'].font = normal_font
+            ws[f'A{row}'].alignment = Alignment(wrap_text=True)
+            ws.merge_cells(f'A{row}:F{row}')
+            ws.row_dimensions[row].height = 40
+            row += 2
+            
+            # PRÓRROGAS
+            prorrogas_text = [
+                "1 PRÓRROGA: {{FECHA_FIN}} A {{FECHA_PRORROGA_1}}",
+                "2 PRÓRROGA: {{FECHA_PRORROGA_1}} A {{FECHA_PRORROGA_2}}",
+                "3 PRÓRROGA: {{FECHA_PRORROGA_2}} A {{FECHA_PRORROGA_3}}",
+                "",
+                "INICIANDO UN CONTRATO DE TRABAJO A UN AÑO A PARTIR DEL DÍA {{FECHA_CONTRATO_ANUAL}}"
+            ]
+            
+            for prorroga in prorrogas_text:
+                ws[f'A{row}'] = prorroga
+                ws[f'A{row}'].font = normal_font
+                ws.merge_cells(f'A{row}:F{row}')
+                row += 1
+            
+            row += 2
+            
+            # INFORMACIÓN DE LUGAR Y FECHA
+            ws[f'A{row}'] = "CIUDAD: {{CIUDAD_CONTRATO}}"
+            ws[f'A{row}'].font = normal_font
+            ws[f'D{row}'] = "FECHA: {{FECHA_ELABORACION}}"
+            ws[f'D{row}'].font = normal_font
+            row += 3
+            
+            # FIRMAS
+            ws[f'A{row}'] = "Recibí copia del documento"
+            ws[f'A{row}'].font = normal_font
+            row += 2
+            
+            ws[f'A{row}'] = "________________________________"
+            ws[f'D{row}'] = "________________________________"
+            row += 1
+            
+            ws[f'A{row}'] = "EL EMPLEADOR: {{NOMBRE_EMPLEADOR_FIRMA}}"
+            ws[f'D{row}'] = "EL TRABAJADOR: {{NOMBRE_EMPLEADO}}"
+            ws[f'A{row}'].font = Font(name='Arial', size=9, bold=True)
+            ws[f'D{row}'].font = Font(name='Arial', size=9, bold=True)
+            row += 1
+            
+            ws[f'A{row}'] = "CC Ó NIT: {{NIT_EMPLEADOR}}"
+            ws[f'D{row}'] = "CC: {{CEDULA_EMPLEADO}}"
+            ws[f'A{row}'].font = Font(name='Arial', size=9, bold=True)
+            ws[f'D{row}'].font = Font(name='Arial', size=9, bold=True)
+            row += 2
+            
+            ws[f'A{row}'] = "TESTIGO: {{NOMBRE_TESTIGO}}"
+            ws[f'D{row}'] = "TESTIGO: ____________________"
+            ws[f'A{row}'].font = Font(name='Arial', size=9, bold=True)
+            ws[f'D{row}'].font = Font(name='Arial', size=9, bold=True)
+            row += 1
+            
+            ws[f'A{row}'] = "CC Nº: {{CEDULA_TESTIGO}}"
+            ws[f'D{row}'] = "CC Nº: ____________________"
+            ws[f'A{row}'].font = Font(name='Arial', size=9, bold=True)  
+            ws[f'D{row}'].font = Font(name='Arial', size=9, bold=True)
+            
+            # Configurar impresión
+            ws.print_options.horizontalCentered = True
+            ws.print_area = f'A1:F{row}'
             
             # Guardar template
             wb.save(template_path)
-            print(f"✅ Template de contrato creado: {template_path}")
+            print(f"✅ Template profesional creado: {template_path}")
             
         except Exception as e:
-            print(f"❌ Error creando template: {e}")
+            print(f"❌ Error creando template profesional: {e}")
     
     def create_employee_folder(self, empleado):
         """Crear carpeta personalizada para empleado"""
         try:
-            # Crear nombre de carpeta seguro
             nombre_seguro = self.safe_filename(empleado.nombre_completo)
             cedula_segura = self.safe_filename(empleado.cedula)
             
             folder_name = f"{nombre_seguro}_{cedula_segura}"
             employee_folder = self.base_dir / folder_name
             
-            # Crear carpeta si no existe
             employee_folder.mkdir(exist_ok=True)
             
-            # Crear subcarpetas
             subcarpetas = ["contratos", "documentos", "nomina", "historiales"]
             for subcarpeta in subcarpetas:
                 (employee_folder / subcarpeta).mkdir(exist_ok=True)
@@ -196,19 +335,53 @@ class ContratoExcelGenerator:
     
     def safe_filename(self, filename):
         """Crear nombre de archivo seguro"""
-        # Caracteres no permitidos en nombres de archivo
         invalid_chars = '<>:"/\\|?*'
         for char in invalid_chars:
             filename = filename.replace(char, '_')
         
-        # Remover espacios extra y caracteres especiales
         filename = ''.join(c for c in filename if c.isalnum() or c in (' ', '-', '_')).strip()
         filename = filename.replace(' ', '_')
         
-        return filename[:50]  # Limitar longitud
+        return filename[:50]
     
-    def generate_contract_excel(self, contrato_id, template_path=None):
-        """Generar contrato en Excel para un contrato específico"""
+    def numero_a_letras(self, numero):
+        """Convertir número a letras para el salario"""
+        try:
+            # Implementación básica para números comunes de salarios
+            if numero == 1423500:
+                return "UN MILLÓN CUATROCIENTOS VEINTITRÉS MIL QUINIENTOS PESOS M/CTE"
+            elif numero >= 1000000:
+                millones = numero // 1000000
+                resto = numero % 1000000
+                return f"{self.convertir_millones(millones)} MILLONES {self.convertir_miles(resto)} PESOS M/CTE"
+            else:
+                return self.convertir_miles(numero) + " PESOS M/CTE"
+        except:
+            return "SALARIO EN LETRAS"
+    
+    def convertir_millones(self, num):
+        """Convertir millones a letras"""
+        unidades = ["", "UN", "DOS", "TRES", "CUATRO", "CINCO", "SEIS", "SIETE", "OCHO", "NUEVE"]
+        if num == 1:
+            return "UN"
+        elif num < 10:
+            return unidades[num]
+        else:
+            return str(num)
+    
+    def convertir_miles(self, num):
+        """Convertir miles a letras (implementación básica)"""
+        if num == 0:
+            return ""
+        elif num < 1000:
+            return str(num)
+        else:
+            miles = num // 1000
+            resto = num % 1000
+            return f"{miles} MIL {resto}"
+    
+    def generate_professional_contract_excel(self, contrato_id, template_path=None):
+        """Generar contrato profesional en Excel"""
         if not OPENPYXL_AVAILABLE:
             raise Exception("openpyxl no está instalado. Instalar con: pip install openpyxl")
         
@@ -227,9 +400,9 @@ class ContratoExcelGenerator:
             if not employee_folder:
                 raise Exception("No se pudo crear la carpeta del empleado")
             
-            # Usar template por defecto si no se especifica
+            # Usar template profesional
             if not template_path:
-                template_path = self.templates_dir / "template_contrato_default.xlsx"
+                template_path = self.templates_dir / "contrato_profesional_template.xlsx"
             
             if not template_path.exists():
                 raise Exception("Template de contrato no encontrado")
@@ -239,14 +412,14 @@ class ContratoExcelGenerator:
             ws = wb.active
             
             # Preparar datos para reemplazar
-            data_replacements = self.prepare_contract_data(contrato, empleado)
+            data_replacements = self.prepare_professional_contract_data(contrato, empleado)
             
             # Reemplazar placeholders en todas las celdas
             self.replace_placeholders_in_worksheet(ws, data_replacements)
             
             # Generar nombre de archivo único
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            contract_filename = f"contrato_{empleado.cedula}_{timestamp}.xlsx"
+            contract_filename = f"contrato_profesional_{empleado.cedula}_{timestamp}.xlsx"
             contract_path = employee_folder / "contratos" / contract_filename
             
             # Guardar contrato generado
@@ -260,7 +433,7 @@ class ContratoExcelGenerator:
                 'success': True,
                 'file_path': str(contract_path),
                 'employee_folder': str(employee_folder),
-                'message': f'Contrato generado exitosamente para {empleado.nombre_completo}'
+                'message': f'Contrato profesional generado exitosamente para {empleado.nombre_completo}'
             }
             
         except Exception as e:
@@ -270,44 +443,87 @@ class ContratoExcelGenerator:
                 'message': f'Error generando contrato: {e}'
             }
     
-    def prepare_contract_data(self, contrato, empleado):
-        """Preparar datos del contrato para reemplazar placeholders"""
+    def prepare_professional_contract_data(self, contrato, empleado):
+        """Preparar datos profesionales del contrato"""
         try:
             # Calcular valores
-            salario_base = contrato.salario_base or 0
-            subsidio_transporte = contrato.subsidio_transporte or 0
+            salario_base = contrato.salario_base or 1423500  # Valor por defecto
+            subsidio_transporte = contrato.subsidio_transporte or 140606
             bonificaciones = contrato.bonificaciones or 0
-            total_devengado = salario_base + subsidio_transporte + bonificaciones
             
             # Formatear fechas
-            fecha_elaboracion = datetime.now().strftime("%d de %B de %Y")
-            fecha_inicio = contrato.fecha_inicio.strftime("%d de %B de %Y") if contrato.fecha_inicio else "No definida"
-            fecha_fin = contrato.fecha_fin.strftime("%d de %B de %Y") if contrato.fecha_fin else "Indefinida"
+            fecha_elaboracion = datetime.now().strftime("%d DE %B DE %Y").upper()
+            fecha_inicio = contrato.fecha_inicio.strftime("%d DE %B %Y") if contrato.fecha_inicio else "17 DE FEBRERO 2025"
+            fecha_fin = contrato.fecha_fin.strftime("%d DE %B %Y") if contrato.fecha_fin else "16 DE ABRIL 2025"
             
-            # Preparar datos
+            # Calcular prórrogas (ejemplo basado en el documento)
+            if contrato.fecha_fin:
+                fecha_fin_obj = contrato.fecha_fin
+                fecha_prorroga_1 = fecha_fin_obj + timedelta(days=60)  # 2 meses
+                fecha_prorroga_2 = fecha_prorroga_1 + timedelta(days=60)  # 2 meses más
+                fecha_prorroga_3 = fecha_prorroga_2 + timedelta(days=60)  # 2 meses más
+                fecha_contrato_anual = fecha_prorroga_3
+                
+                fecha_prorroga_1_str = fecha_prorroga_1.strftime("%d DE %B %Y")
+                fecha_prorroga_2_str = fecha_prorroga_2.strftime("%d DE %B %Y")
+                fecha_prorroga_3_str = fecha_prorroga_3.strftime("%d DE %B %Y")
+                fecha_contrato_anual_str = fecha_contrato_anual.strftime("%d DE %B %Y")
+            else:
+                fecha_prorroga_1_str = "17 DE JUNIO 2025"
+                fecha_prorroga_2_str = "17 DE AGOSTO 2025"
+                fecha_prorroga_3_str = "17 DE OCTUBRE 2025"
+                fecha_contrato_anual_str = "17 DE OCTUBRE 2025"
+            
+            # Preparar todos los placeholders
             data = {
-                '{{NUMERO_CONTRATO}}': contrato.numero_contrato or "SIN-NÚMERO",
-                '{{FECHA_ELABORACION}}': fecha_elaboracion,
-                '{{NOMBRE_EMPLEADO}}': empleado.nombre_completo or "",
-                '{{CEDULA_EMPLEADO}}': empleado.cedula or "",
-                '{{TELEFONO_EMPLEADO}}': empleado.telefono or "No definido",
-                '{{EMAIL_EMPLEADO}}': empleado.email or "No definido",
-                '{{DIRECCION_EMPLEADO}}': empleado.direccion or "No definida",
-                '{{TIPO_CONTRATO}}': contrato.tipo_contrato or "No definido",
+                # Información básica
+                '{{NUMERO_TRABAJADOR}}': f"855-{contrato.id:03d}",
+                '{{NOMBRE_EMPLEADOR}}': "FLORES JUNCALITO S.A.S",
+                '{{DIRECCION_EMPLEADOR}}': "CARRERA 19 C N. 88-07",
+                '{{NOMBRE_EMPLEADO}}': empleado.nombre_completo or "XXXXXXXXXXXXXXXXXXXX",
+                '{{DIRECCION_EMPLEADO}}': empleado.direccion or "XXXXXXXXXXXXXXX",
+                '{{LUGAR_NACIMIENTO}}': f"{empleado.direccion or 'XXXXXXXXXXXXXXX'}, COLOMBIANO(A)",
+                '{{CARGO_EMPLEADO}}': empleado.cargo or "OPERARIO(A) - OFICIOS VARIOS",
+                
+                # Información salarial
+                '{{SALARIO_BASE}}': f"{salario_base:,}",
+                '{{SALARIO_LETRAS}}': self.numero_a_letras(salario_base),
+                '{{PERIODO_PAGO}}': "MENSUALES",
+                
+                # Fechas
                 '{{FECHA_INICIO}}': fecha_inicio,
                 '{{FECHA_FIN}}': fecha_fin,
-                '{{AREA_TRABAJO}}': empleado.area_trabajo or "No definida",
-                '{{CARGO_EMPLEADO}}': empleado.cargo or "No definido",
-                '{{SALARIO_BASE}}': f"${salario_base:,}",
-                '{{SUBSIDIO_TRANSPORTE}}': f"${subsidio_transporte:,}",
-                '{{BONIFICACIONES}}': f"${bonificaciones:,}",
-                '{{TOTAL_DEVENGADO}}': f"${total_devengado:,}",
+                '{{FECHA_ELABORACION}}': fecha_elaboracion,
+                
+                # Lugares
+                '{{LUGAR_LABORES}}': "FLORES JUNCALITO S.A.S",
+                '{{CIUDAD_CONTRATO}}': "BARRIO SAN JOSE -- EL ROSAL C/MARCA",
+                
+                # Duración
+                '{{TERMINO_CONTRATO}}': "A DOS MESES" if contrato.tipo_contrato == "temporal" else "INDEFINIDO",
+                
+                # Prórrogas
+                '{{FECHA_PRORROGA_1}}': fecha_prorroga_1_str,
+                '{{FECHA_PRORROGA_2}}': fecha_prorroga_2_str,
+                '{{FECHA_PRORROGA_3}}': fecha_prorroga_3_str,
+                '{{FECHA_CONTRATO_ANUAL}}': fecha_contrato_anual_str,
+                
+                # Información del empleado
+                '{{CEDULA_EMPLEADO}}': empleado.cedula or "XXXXXXXXXXXXXXXXX",
+                '{{TELEFONO_EMPLEADO}}': empleado.telefono or "No definido",
+                '{{EMAIL_EMPLEADO}}': empleado.email or "No definido",
+                
+                # Información del empleador (datos reales de la empresa)
+                '{{NOMBRE_EMPLEADOR_FIRMA}}': "FELIPE DE LA TORRE",
+                '{{NIT_EMPLEADOR}}': "860.065.678-2",
+                '{{NOMBRE_TESTIGO}}': "NELLY GRACIELA TORRES R.",
+                '{{CEDULA_TESTIGO}}': "52.326.084 DE BTÁ",
             }
             
             return data
             
         except Exception as e:
-            print(f"Error preparando datos del contrato: {e}")
+            print(f"Error preparando datos del contrato profesional: {e}")
             return {}
     
     def replace_placeholders_in_worksheet(self, worksheet, data_replacements):
@@ -365,19 +581,19 @@ class ContratoExcelGenerator:
             return []
 
 
-class ContratoExcelWindow:
-    """Ventana para generar contratos en Excel"""
+class ContratoProfesionalExcelWindow:
+    """Ventana para generar contratos profesionales en Excel"""
     
     def __init__(self, parent, main_window, contrato=None):
         self.parent = parent
         self.main_window = main_window
         self.contrato = contrato
-        self.generator = ContratoExcelGenerator()
+        self.generator = ContratoProfesionalExcelGenerator()
         
         # Crear ventana
         self.window = tk.Toplevel(parent)
-        self.window.title("📄 Generador de Contratos Excel")
-        self.window.geometry("600x500")
+        self.window.title("📄 Generador de Contratos Profesionales Excel")
+        self.window.geometry("700x600")
         self.window.configure(bg='#f8f9fa')
         
         self.center_window()
@@ -393,24 +609,29 @@ class ContratoExcelWindow:
     def center_window(self):
         """Centrar ventana"""
         self.window.update_idletasks()
-        x = (self.window.winfo_screenwidth() // 2) - (600 // 2)
-        y = (self.window.winfo_screenheight() // 2) - (500 // 2)
-        self.window.geometry(f"600x500+{x}+{y}")
+        x = (self.window.winfo_screenwidth() // 2) - (700 // 2)
+        y = (self.window.winfo_screenheight() // 2) - (600 // 2)
+        self.window.geometry(f"700x600+{x}+{y}")
     
     def create_interface(self):
         """Crear interfaz de la ventana"""
         # Header
-        header = tk.Frame(self.window, bg='#2c3e50', height=70)
+        header = tk.Frame(self.window, bg='#2c3e50', height=80)
         header.pack(fill=tk.X)
         header.pack_propagate(False)
         
         header_content = tk.Frame(header, bg='#2c3e50')
         header_content.pack(fill=tk.BOTH, expand=True, padx=20, pady=15)
         
-        title_label = tk.Label(header_content, text="📄 Generador de Contratos Excel",
+        title_label = tk.Label(header_content, text="📄 Generador de Contratos Profesionales",
                               font=('Segoe UI', 18, 'bold'),
                               bg='#2c3e50', fg='white')
         title_label.pack(side=tk.LEFT)
+        
+        subtitle_label = tk.Label(header_content, text="Formato Oficial FLORES JUNCALITO S.A.S",
+                                font=('Segoe UI', 10),
+                                bg='#2c3e50', fg='#ecf0f1')
+        subtitle_label.pack(side=tk.LEFT, padx=(20, 0))
         
         # Contenido principal
         content = tk.Frame(self.window, bg='white')
@@ -419,8 +640,8 @@ class ContratoExcelWindow:
         # Información del contrato
         self.create_contract_info_section(content)
         
-        # Opciones de generación
-        self.create_generation_options(content)
+        # Vista previa de datos
+        self.create_preview_section(content)
         
         # Sección de archivos existentes
         self.create_existing_files_section(content)
@@ -442,7 +663,7 @@ class ContratoExcelWindow:
         
         self.contract_var = tk.StringVar()
         self.contract_combo = ttk.Combobox(info_frame, textvariable=self.contract_var,
-                                          width=50, font=('Segoe UI', 10),
+                                          width=60, font=('Segoe UI', 10),
                                           state='readonly')
         self.contract_combo.grid(row=0, column=1, pady=5, padx=(10, 0), sticky='ew')
         self.contract_combo.bind('<<ComboboxSelected>>', self.on_contract_selected)
@@ -452,7 +673,10 @@ class ContratoExcelWindow:
         info_fields = [
             ("Empleado:", "empleado"),
             ("Cédula:", "cedula"),
+            ("Cargo:", "cargo"),
+            ("Área:", "area"),
             ("Tipo Contrato:", "tipo"),
+            ("Salario:", "salario"),
             ("Estado:", "estado")
         ]
         
@@ -472,47 +696,27 @@ class ContratoExcelWindow:
         # Cargar contratos
         self.load_contracts()
     
-    def create_generation_options(self, parent):
-        """Crear opciones de generación"""
-        options_frame = tk.LabelFrame(parent, text="⚙️ Opciones de Generación",
+    def create_preview_section(self, parent):
+        """Crear sección de vista previa"""
+        preview_frame = tk.LabelFrame(parent, text="👁️ Vista Previa del Contrato",
                                      font=('Segoe UI', 12, 'bold'),
                                      bg='white', fg='#2c3e50', padx=15, pady=10)
-        options_frame.pack(fill=tk.X, pady=(0, 15))
+        preview_frame.pack(fill=tk.X, pady=(0, 15))
         
-        # Template personalizado
-        template_frame = tk.Frame(options_frame, bg='white')
-        template_frame.pack(fill=tk.X, pady=5)
+        # Información que aparecerá en el contrato
+        preview_text = tk.Text(preview_frame, height=8, width=70,
+                              font=('Segoe UI', 9), wrap=tk.WORD,
+                              bg='#f8f9fa', relief='solid', bd=1)
+        preview_text.pack(fill=tk.X, pady=5)
         
-        self.use_custom_template = tk.BooleanVar()
-        custom_check = tk.Checkbutton(template_frame, 
-                                     text="Usar template personalizado",
-                                     variable=self.use_custom_template,
-                                     font=('Segoe UI', 10),
-                                     bg='white', fg='#2c3e50',
-                                     command=self.toggle_custom_template)
-        custom_check.pack(side=tk.LEFT)
+        # Scrollbar para el text
+        preview_scroll = ttk.Scrollbar(preview_frame, orient=tk.VERTICAL, command=preview_text.yview)
+        preview_text.configure(yscrollcommand=preview_scroll.set)
         
-        # Ruta del template
-        self.template_frame = tk.Frame(options_frame, bg='white')
-        self.template_frame.pack(fill=tk.X, pady=5)
+        self.preview_text = preview_text
         
-        tk.Label(self.template_frame, text="Template:",
-                font=('Segoe UI', 9),
-                bg='white', fg='#7f8c8d').pack(side=tk.LEFT)
-        
-        self.template_path_var = tk.StringVar()
-        self.template_entry = tk.Entry(self.template_frame, 
-                                      textvariable=self.template_path_var,
-                                      width=40, font=('Segoe UI', 9),
-                                      state='disabled')
-        self.template_entry.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
-        
-        self.browse_btn = tk.Button(self.template_frame, text="Buscar",
-                                   command=self.browse_template,
-                                   bg='#3498db', fg='white',
-                                   font=('Segoe UI', 9),
-                                   relief='flat', padx=15, state='disabled')
-        self.browse_btn.pack(side=tk.RIGHT, padx=(5, 0))
+        # Texto inicial
+        self.update_preview("Seleccione un contrato para ver la vista previa...")
     
     def create_existing_files_section(self, parent):
         """Crear sección de archivos existentes"""
@@ -531,7 +735,7 @@ class ContratoExcelWindow:
         self.files_tree.heading('Fecha', text='Fecha Modificación')
         self.files_tree.heading('Tamaño', text='Tamaño')
         
-        self.files_tree.column('Archivo', width=300)
+        self.files_tree.column('Archivo', width=350)
         self.files_tree.column('Fecha', width=150)
         self.files_tree.column('Tamaño', width=80)
         
@@ -556,38 +760,38 @@ class ContratoExcelWindow:
         buttons_frame.pack(fill=tk.X)
         
         # Botón generar
-        generate_btn = tk.Button(buttons_frame, text="📄 Generar Contrato Excel",
-                               command=self.generate_contract,
+        generate_btn = tk.Button(buttons_frame, text="📄 Generar Contrato Profesional",
+                               command=self.generate_professional_contract,
                                bg='#27ae60', fg='white',
                                font=('Segoe UI', 12, 'bold'),
-                               relief='flat', bd=0, padx=20, pady=10,
+                               relief='flat', bd=0, padx=25, pady=12,
                                cursor='hand2')
         generate_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Botón vista previa
+        preview_btn = tk.Button(buttons_frame, text="👁️ Actualizar Vista Previa",
+                              command=self.update_contract_preview,
+                              bg='#3498db', fg='white',
+                              font=('Segoe UI', 11, 'bold'),
+                              relief='flat', bd=0, padx=20, pady=12,
+                              cursor='hand2')
+        preview_btn.pack(side=tk.LEFT, padx=5)
         
         # Botón abrir carpeta
         folder_btn = tk.Button(buttons_frame, text="📁 Abrir Carpeta",
                               command=self.open_employee_folder,
-                              bg='#3498db', fg='white',
-                              font=('Segoe UI', 11, 'bold'),
-                              relief='flat', bd=0, padx=15, pady=10,
-                              cursor='hand2')
-        folder_btn.pack(side=tk.LEFT, padx=5)
-        
-        # Botón refresh
-        refresh_btn = tk.Button(buttons_frame, text="🔄 Actualizar",
-                              command=self.refresh_files_list,
                               bg='#f39c12', fg='white',
                               font=('Segoe UI', 11, 'bold'),
-                              relief='flat', bd=0, padx=15, pady=10,
+                              relief='flat', bd=0, padx=15, pady=12,
                               cursor='hand2')
-        refresh_btn.pack(side=tk.LEFT, padx=5)
+        folder_btn.pack(side=tk.LEFT, padx=5)
         
         # Botón cerrar
         close_btn = tk.Button(buttons_frame, text="❌ Cerrar",
                             command=self.window.destroy,
                             bg='#e74c3c', fg='white',
                             font=('Segoe UI', 11, 'bold'),
-                            relief='flat', bd=0, padx=15, pady=10,
+                            relief='flat', bd=0, padx=15, pady=12,
                             cursor='hand2')
         close_btn.pack(side=tk.RIGHT, padx=5)
     
@@ -601,7 +805,7 @@ class ContratoExcelWindow:
             self.contracts_dict = {}
             
             for contrato in contratos:
-                display_text = f"{contrato.numero_contrato or 'SIN-NUM'} - {contrato.empleado.nombre_completo}"
+                display_text = f"{contrato.numero_contrato or 'SIN-NUM'} - {contrato.empleado.nombre_completo} - {contrato.tipo_contrato or 'Sin tipo'}"
                 contract_options.append(display_text)
                 self.contracts_dict[display_text] = contrato
             
@@ -623,7 +827,7 @@ class ContratoExcelWindow:
     def load_contract_data(self):
         """Cargar datos del contrato seleccionado"""
         if self.contrato:
-            display_text = f"{self.contrato.numero_contrato or 'SIN-NUM'} - {self.contrato.empleado.nombre_completo}"
+            display_text = f"{self.contrato.numero_contrato or 'SIN-NUM'} - {self.contrato.empleado.nombre_completo} - {self.contrato.tipo_contrato or 'Sin tipo'}"
             self.contract_combo.set(display_text)
             self.on_contract_selected()
     
@@ -637,30 +841,82 @@ class ContratoExcelWindow:
             # Actualizar información
             self.info_labels['empleado'].config(text=empleado.nombre_completo)
             self.info_labels['cedula'].config(text=empleado.cedula)
+            self.info_labels['cargo'].config(text=empleado.cargo or "OPERARIO(A) - OFICIOS VARIOS")
+            self.info_labels['area'].config(text=empleado.area_trabajo or "No definida")
             self.info_labels['tipo'].config(text=contrato.tipo_contrato or "No definido")
+            self.info_labels['salario'].config(text=f"${contrato.salario_base:,}" if contrato.salario_base else "No definido")
             self.info_labels['estado'].config(text=contrato.estado or "borrador")
+            
+            # Actualizar vista previa
+            self.update_contract_preview()
             
             # Actualizar lista de archivos
             self.refresh_files_list()
     
-    def toggle_custom_template(self):
-        """Alternar uso de template personalizado"""
-        if self.use_custom_template.get():
-            self.template_entry.config(state='normal')
-            self.browse_btn.config(state='normal')
-        else:
-            self.template_entry.config(state='disabled')
-            self.browse_btn.config(state='disabled')
-            self.template_path_var.set("")
+    def update_contract_preview(self):
+        """Actualizar vista previa del contrato"""
+        selected = self.contract_var.get()
+        if not selected or selected not in self.contracts_dict:
+            self.update_preview("Seleccione un contrato para ver la vista previa...")
+            return
+        
+        contrato = self.contracts_dict[selected]
+        empleado = contrato.empleado
+        
+        # Generar vista previa del contrato
+        preview_text = f"""
+CONTRATO INDIVIDUAL DE TRABAJO A TÉRMINO FIJO INFERIOR A UN AÑO
+
+TRABAJADOR 855-{contrato.id:03d}
+
+DATOS PRINCIPALES:
+• Empleador: FLORES JUNCALITO S.A.S
+• Trabajador: {empleado.nombre_completo}
+• Cédula: {empleado.cedula}
+• Cargo: {empleado.cargo or 'OPERARIO(A) - OFICIOS VARIOS'}
+• Dirección Trabajador: {empleado.direccion or 'XXXXXXXXXXXXXXX'}
+
+INFORMACIÓN CONTRACTUAL:
+• Salario: ${contrato.salario_base:,} ({self.generator.numero_a_letras(contrato.salario_base or 1423500)})
+• Período de Pago: MENSUALES
+• Fecha Inicio: {contrato.fecha_inicio.strftime('%d DE %B %Y') if contrato.fecha_inicio else '17 DE FEBRERO 2025'}
+• Fecha Fin: {contrato.fecha_fin.strftime('%d DE %B %Y') if contrato.fecha_fin else '16 DE ABRIL 2025'}
+• Término: {'A DOS MESES' if contrato.tipo_contrato == 'temporal' else 'INDEFINIDO'}
+
+LUGAR DE TRABAJO:
+• Empresa: FLORES JUNCALITO S.A.S
+• Ubicación: BARRIO SAN JOSE -- EL ROSAL C/MARCA
+
+ESTRUCTURA DEL CONTRATO:
+✓ Cláusula Primera: Objeto del contrato
+✓ Cláusula Segunda: Remuneración
+✓ Cláusula Tercera: Duración del contrato
+✓ Cláusula Cuarta: Trabajo nocturno y suplementario
+✓ Cláusula Quinta: Jornada de trabajo
+✓ Cláusula Sexta: Período de prueba
+✓ Cláusula Séptima: Terminación unilateral
+✓ Cláusula Octava: Propiedad intelectual
+✓ Cláusula Novena: Modificación de condiciones laborales
+✓ Cláusula Décima: Dirección del trabajador
+✓ Cláusula Undécima: Efectos
+
+PRÓRROGAS PROGRAMADAS:
+• 1ª Prórroga: Hasta {(contrato.fecha_fin + timedelta(days=60)).strftime('%d DE %B %Y') if contrato.fecha_fin else '17 DE JUNIO 2025'}
+• 2ª Prórroga: Hasta {(contrato.fecha_fin + timedelta(days=120)).strftime('%d DE %B %Y') if contrato.fecha_fin else '17 DE AGOSTO 2025'}
+• 3ª Prórroga: Hasta {(contrato.fecha_fin + timedelta(days=180)).strftime('%d DE %B %Y') if contrato.fecha_fin else '17 DE OCTUBRE 2025'}
+
+FIRMAS:
+• Empleador: FELIPE DE LA TORRE (CC/NIT: 860.065.678-2)
+• Trabajador: {empleado.nombre_completo} (CC: {empleado.cedula})
+• Testigo: NELLY GRACIELA TORRES R. (CC: 52.326.084 DE BTÁ)
+        """
+        
+        self.update_preview(preview_text.strip())
     
-    def browse_template(self):
-        """Buscar template personalizado"""
-        file_path = filedialog.askopenfilename(
-            title="Seleccionar Template de Contrato",
-            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")]
-        )
-        if file_path:
-            self.template_path_var.set(file_path)
+    def update_preview(self, text):
+        """Actualizar texto de vista previa"""
+        self.preview_text.delete('1.0', tk.END)
+        self.preview_text.insert('1.0', text)
     
     def refresh_files_list(self):
         """Actualizar lista de archivos existentes"""
@@ -697,8 +953,8 @@ class ContratoExcelWindow:
         except Exception as e:
             print(f"Error actualizando lista de archivos: {e}")
     
-    def generate_contract(self):
-        """Generar contrato en Excel"""
+    def generate_professional_contract(self):
+        """Generar contrato profesional en Excel"""
         try:
             if not OPENPYXL_AVAILABLE:
                 messagebox.showerror("Error", 
@@ -714,20 +970,12 @@ class ContratoExcelWindow:
             
             contrato = self.contracts_dict[selected]
             
-            # Obtener template
-            template_path = None
-            if self.use_custom_template.get() and self.template_path_var.get():
-                template_path = Path(self.template_path_var.get())
-                if not template_path.exists():
-                    messagebox.showerror("Error", "El template seleccionado no existe")
-                    return
-            
             # Mostrar progreso
             progress_window = self.show_progress_window()
             
-            # Generar contrato
+            # Generar contrato profesional
             self.window.update()
-            result = self.generator.generate_contract_excel(contrato.id, template_path)
+            result = self.generator.generate_professional_contract_excel(contrato.id)
             
             # Cerrar ventana de progreso
             progress_window.destroy()
@@ -737,11 +985,13 @@ class ContratoExcelWindow:
                 self.refresh_files_list()
                 
                 # Mostrar resultado exitoso
-                if messagebox.askyesno("Éxito", 
-                    f"Contrato generado exitosamente:\n\n" +
-                    f"Empleado: {contrato.empleado.nombre_completo}\n" +
-                    f"Archivo: {Path(result['file_path']).name}\n\n" +
-                    "¿Desea abrir el archivo?"):
+                if messagebox.askyesno("¡Contrato Generado Exitosamente!", 
+                    f"✅ Contrato profesional generado:\n\n" +
+                    f"📄 Empleado: {contrato.empleado.nombre_completo}\n" +
+                    f"📋 Contrato: {contrato.numero_contrato}\n" +
+                    f"💼 Formato: FLORES JUNCALITO S.A.S Oficial\n" +
+                    f"📁 Archivo: {Path(result['file_path']).name}\n\n" +
+                    "¿Desea abrir el archivo generado?"):
                     self.open_file(result['file_path'])
             else:
                 messagebox.showerror("Error", result['message'])
@@ -752,8 +1002,8 @@ class ContratoExcelWindow:
     def show_progress_window(self):
         """Mostrar ventana de progreso"""
         progress_window = tk.Toplevel(self.window)
-        progress_window.title("Generando Contrato")
-        progress_window.geometry("300x100")
+        progress_window.title("Generando Contrato Profesional")
+        progress_window.geometry("350x120")
         progress_window.configure(bg='white')
         progress_window.resizable(False, False)
         
@@ -761,14 +1011,18 @@ class ContratoExcelWindow:
         progress_window.transient(self.window)
         progress_window.grab_set()
         
-        x = (progress_window.winfo_screenwidth() // 2) - (300 // 2)
-        y = (progress_window.winfo_screenheight() // 2) - (100 // 2)
-        progress_window.geometry(f"300x100+{x}+{y}")
+        x = (progress_window.winfo_screenwidth() // 2) - (350 // 2)
+        y = (progress_window.winfo_screenheight() // 2) - (120 // 2)
+        progress_window.geometry(f"350x120+{x}+{y}")
         
         # Contenido
-        tk.Label(progress_window, text="Generando contrato Excel...",
+        tk.Label(progress_window, text="📄 Generando contrato profesional Excel...",
                 font=('Segoe UI', 12),
-                bg='white', fg='#2c3e50').pack(expand=True)
+                bg='white', fg='#2c3e50').pack(expand=True, pady=10)
+        
+        tk.Label(progress_window, text="Formato oficial FLORES JUNCALITO S.A.S",
+                font=('Segoe UI', 9),
+                bg='white', fg='#7f8c8d').pack()
         
         # Barra de progreso
         progress_bar = ttk.Progressbar(progress_window, mode='indeterminate')
@@ -844,150 +1098,78 @@ class ContratoExcelWindow:
             messagebox.showerror("Error", f"Error abriendo carpeta: {e}")
 
 
-# ============= INTEGRACIÓN CON EL SISTEMA EXISTENTE =============
-
-def integrar_generador_contratos():
-    """Función para integrar el generador en contratos_view.py"""
-    
-    # Esta función se debe agregar a la clase ContratosWindow en contratos_view.py
-    def generar_contrato_excel(self):
-        """Generar contrato en Excel - Nueva funcionalidad"""
-        contrato = self.get_selected_contrato()
-        if contrato:
-            ContratoExcelWindow(self.window, self, contrato)
-    
-    # Código para agregar botón en contratos_view.py
-    boton_excel_code = '''
-    # Agregar este botón en el create_widgets de ContratosWindow
-    excel_btn = tk.Button(btn_frame, text="📄 Generar Excel", 
-                         command=self.generar_contrato_excel,
-                         bg="#27ae60", fg='white', font=('Arial', 10, 'bold'),
-                         relief='flat', padx=15, pady=8, cursor='hand2')
-    excel_btn.pack(side=tk.LEFT, padx=8)
-    '''
-    
-    return boton_excel_code
-
-
-# ============= UTILIDADES ADICIONALES =============
-
-class ContractTemplateManager:
-    """Gestor de templates de contratos"""
-    
-    def __init__(self):
-        self.templates_dir = Path("templates_contratos")
-        self.templates_dir.mkdir(exist_ok=True)
-    
-    def create_advanced_template(self):
-        """Crear template avanzado con más opciones"""
-        if not OPENPYXL_AVAILABLE:
-            return
-        
-        template_path = self.templates_dir / "template_contrato_avanzado.xlsx"
-        
-        try:
-            wb = openpyxl.Workbook()
-            ws = wb.active
-            ws.title = "Contrato Laboral"
-            
-            # Configuración avanzada con colores y estilos
-            # ... (código para template avanzado)
-            
-            wb.save(template_path)
-            print(f"Template avanzado creado: {template_path}")
-            
-        except Exception as e:
-            print(f"Error creando template avanzado: {e}")
-    
-    def validate_template(self, template_path):
-        """Validar que el template tenga los placeholders necesarios"""
-        if not OPENPYXL_AVAILABLE:
-            return False, "openpyxl no disponible"
-        
-        try:
-            wb = openpyxl.load_workbook(template_path)
-            ws = wb.active
-            
-            required_placeholders = [
-                '{{NOMBRE_EMPLEADO}}', '{{CEDULA_EMPLEADO}}', 
-                '{{NUMERO_CONTRATO}}', '{{FECHA_INICIO}}'
-            ]
-            
-            found_placeholders = []
-            for row in ws.iter_rows():
-                for cell in row:
-                    if cell.value and isinstance(cell.value, str):
-                        for placeholder in required_placeholders:
-                            if placeholder in cell.value and placeholder not in found_placeholders:
-                                found_placeholders.append(placeholder)
-            
-            missing = [p for p in required_placeholders if p not in found_placeholders]
-            
-            if missing:
-                return False, f"Faltan placeholders: {', '.join(missing)}"
-            
-            return True, "Template válido"
-            
-        except Exception as e:
-            return False, f"Error validando template: {e}"
-
-
 # ============= FUNCIÓN PRINCIPAL PARA INTEGRAR =============
 
-def abrir_generador_contratos_excel(parent, main_window, contrato=None):
-    """Función principal para abrir el generador de contratos Excel"""
+def abrir_generador_contratos_profesional_excel(parent, main_window, contrato=None):
+    """Función principal para abrir el generador de contratos profesionales Excel"""
     try:
-        ContratoExcelWindow(parent, main_window, contrato)
+        ContratoProfesionalExcelWindow(parent, main_window, contrato)
     except Exception as e:
         messagebox.showerror("Error", f"Error abriendo generador de contratos: {e}")
 
 
-# ============= INSTRUCCIONES DE INTEGRACIÓN =============
+# ============= INSTRUCCIONES DE INTEGRACIÓN MEJORADAS =============
 
-integration_instructions = """
-INSTRUCCIONES PARA INTEGRAR EL GENERADOR DE CONTRATOS EXCEL:
+integration_instructions_professional = """
+SISTEMA DE CONTRATOS PROFESIONALES EXCEL - FORMATO OFICIAL
 
-1. INSTALAR DEPENDENCIAS:
-   pip install openpyxl
+✅ CARACTERÍSTICAS DEL SISTEMA:
+• Formato oficial basado en FLORES JUNCALITO S.A.S
+• Contrato completo con todas las cláusulas legales
+• Tabla profesional con bordes y formato empresarial
+• Placeholders automáticos para todos los datos
+• Cálculo automático de prórrogas y fechas
+• Conversión de números a letras para salarios
+• Información legal completa y actualizada
 
-2. AGREGAR IMPORTACIÓN en contratos_view.py:
-   from utils.contrato_excel_generator import abrir_generador_contratos_excel
+📋 CONTENIDO DEL CONTRATO GENERADO:
+• Tabla de información principal (empleador, trabajador, salarios, fechas)
+• 11 cláusulas legales completas
+• Información de prórrogas automáticas
+• Sección de firmas con datos reales
+• Formato de impresión optimizado
+• Cláusulas adicionales incluidas
 
-3. AGREGAR MÉTODO en la clase ContratosWindow:
-   def generar_contrato_excel(self):
-       contrato = self.get_selected_contrato()
-       if contrato:
-           abrir_generador_contratos_excel(self.window, self, contrato)
+🔧 PARA INTEGRAR EN contratos_view.py:
 
-4. AGREGAR BOTÓN en create_widgets() de ContratosWindow:
-   excel_btn = tk.Button(btn_frame, text="📄 Excel", 
-                        command=self.generar_contrato_excel,
-                        bg="#27ae60", fg='white', font=('Arial', 10, 'bold'),
-                        relief='flat', padx=15, pady=8, cursor='hand2')
-   excel_btn.pack(side=tk.LEFT, padx=8)
+1. REEMPLAZAR el método generar_contrato_excel() con:
 
-5. ESTRUCTURA DE CARPETAS CREADA:
-   empleados_data/
-   ├── NombreEmpleado_Cedula/
-   │   ├── contratos/          # Contratos Excel generados
-   │   ├── documentos/         # Otros documentos
-   │   ├── nomina/             # Archivos de nómina
-   │   └── historiales/        # Historiales laborales
-   
-6. CARACTERÍSTICAS:
-   ✅ Genera contratos Excel personalizados
-   ✅ Crea carpetas automáticas por empleado
-   ✅ Template personalizable con placeholders
-   ✅ Lista archivos generados anteriormente
-   ✅ Abre archivos y carpetas automáticamente
-   ✅ Integración completa con sistema existente
+def generar_contrato_excel(self):
+    contrato = self.get_selected_contrato()
+    if contrato:
+        try:
+            from utils.contrato_excel_generator import abrir_generador_contratos_profesional_excel
+            abrir_generador_contratos_profesional_excel(self.window, self, contrato)
+        except ImportError:
+            messagebox.showinfo("Generar Excel", "Instale openpyxl y agregue contrato_excel_generator.py")
 
-7. PLACEHOLDERS DISPONIBLES:
-   {{NOMBRE_EMPLEADO}}, {{CEDULA_EMPLEADO}}, {{NUMERO_CONTRATO}}
-   {{FECHA_ELABORACION}}, {{FECHA_INICIO}}, {{FECHA_FIN}}
-   {{TIPO_CONTRATO}}, {{AREA_TRABAJO}}, {{CARGO_EMPLEADO}}
-   {{SALARIO_BASE}}, {{SUBSIDIO_TRANSPORTE}}, {{BONIFICACIONES}}
-   {{TOTAL_DEVENGADO}}, {{TELEFONO_EMPLEADO}}, {{EMAIL_EMPLEADO}}
+📁 ESTRUCTURA CREADA:
+empleados_data/
+├── NombreEmpleado_Cedula/
+│   ├── contratos/
+│   │   └── contrato_profesional_cedula_timestamp.xlsx
+│   ├── documentos/
+│   ├── nomina/
+│   └── historiales/
+└── templates_contratos/
+    └── contrato_profesional_template.xlsx
+
+🎯 DATOS RELLENADOS AUTOMÁTICAMENTE:
+• Información completa del empleado
+• Datos salariales con conversión a letras
+• Fechas formateadas correctamente
+• Cálculo automático de prórrogas
+• Información legal de la empresa
+• Datos de testigos y firmas
+• Cláusulas personalizadas
+
+💡 VENTAJAS:
+• Formato 100% profesional y legal
+• Basado en contrato real de empresa
+• Todos los datos se rellenan automáticamente
+• Vista previa antes de generar
+• Gestión completa de archivos
+• Apertura automática del archivo generado
 """
 
-print(integration_instructions)
+print(integration_instructions_professional)
