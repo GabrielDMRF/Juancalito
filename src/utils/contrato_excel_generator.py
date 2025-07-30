@@ -1172,4 +1172,3 @@ empleados_data/
 • Apertura automática del archivo generado
 """
 
-print(integration_instructions_professional)

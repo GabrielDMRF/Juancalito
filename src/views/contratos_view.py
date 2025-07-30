@@ -156,26 +156,17 @@ class ContratosWindow:
         if contrato:
             DetallesContratoWindow(self.window, contrato)
     
-    # MÉTODO NUEVO AGREGADO
     def generar_contrato_excel(self):
-        """Generar contrato en Excel"""
         contrato = self.get_selected_contrato()
         if contrato:
             try:
-                # Intentar importar y usar el generador de Excel
-                from utils.contrato_excel_generator import abrir_generador_contratos_excel
-                abrir_generador_contratos_excel(self.window, self, contrato)
+                from utils.contrato_excel_generator import abrir_generador_contratos_profesional_excel
+                abrir_generador_contratos_profesional_excel(self.window, self, contrato)
             except ImportError:
-                # Si no está el módulo, mostrar mensaje informativo
-                messagebox.showinfo("Generar Excel", 
-                    f"Funcionalidad de generación de contratos Excel.\n\n" +
-                    f"Contrato seleccionado: {contrato.numero_contrato}\n" +
-                    f"Empleado: {contrato.empleado.nombre_completo}\n\n" +
-                    "Para activar esta función:\n" +
-                    "1. Instalar: pip install openpyxl\n" +
-                    "2. Agregar archivo contrato_excel_generator.py en utils/")
-            except Exception as e:
-                messagebox.showerror("Error", f"Error abriendo generador Excel: {e}")
+                messagebox.showinfo(
+                    "Generar Excel",
+                    "Falta la librería 'openpyxl'. Instálala con:\n\npip install openpyxl"
+                )
 
 
 class NuevoContratoWindow:
