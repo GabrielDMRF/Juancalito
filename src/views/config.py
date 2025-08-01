@@ -109,8 +109,14 @@ CONTRATOS_CONFIG = {
     'estados': ['borrador', 'activo', 'vencido', 'terminado', 'suspendido']
 }
 
+from pathlib import Path
+
+# Directorio raíz del proyecto
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
 # Ruta de la plantilla de contrato en Word
-RUTA_PLANTILLA_CONTRATO_WORD = Path(__file__).resolve().parents[2] / "templates_contratos" / "CONTRATO MUESTRA DE TRABAJO A TERMINO FIJO INFERIOR A UN AÑO - copia.docx"
+RUTA_PLANTILLA_CONTRATO_WORD = PROJECT_ROOT / 'plantillas' / 'plantilla_contrato.docx'
+
 
 # ===================== CONFIGURACIÓN DE REPORTES =====================
 REPORTS_CONFIG = {
