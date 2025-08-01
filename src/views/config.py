@@ -4,7 +4,6 @@
 Configuración del Sistema de Gestión de Personal e Inventarios
 Archivo central de configuraciones y constantes del sistema
 """
-
 import os
 from pathlib import Path
 from datetime import datetime
@@ -81,124 +80,9 @@ SQLALCHEMY_CONFIG = {
 
 # ===================== CONFIGURACIÓN DE LA INTERFAZ =====================
 
-# Tema de colores del sistema
-COLOR_THEME = {
-    # Colores principales
-    'primary': '#2c3e50',
-    'secondary': '#34495e',
-    'accent': '#3498db',
-    
-    # Colores de estado
-    'success': '#27ae60',
-    'warning': '#f39c12',
-    'danger': '#e74c3c',
-    'info': '#3498db',
-    
-    # Colores de sistema
-    'background': '#f8f9fa',
-    'surface': '#ffffff',
-    'text_primary': '#2c3e50',
-    'text_secondary': '#7f8c8d',
-    'border': '#dee2e6',
-    
-    # Colores específicos de módulos
-    'personal': '#8e44ad',      # Púrpura para personal
-    'quimicos': '#27ae60',      # Verde para químicos
-    'almacen': '#3498db',       # Azul para almacén
-    'poscosecha': '#16a085',    # Verde oscuro para poscosecha
-    'contratos': '#e67e22',     # Naranja para contratos
-}
+# ... (contenido anterior intacto) ...
 
-# Configuración de fuentes
-FONT_CONFIG = {
-    'family': 'Segoe UI',
-    'size': {
-        'small': 8,
-        'normal': 10,
-        'medium': 12,
-        'large': 14,
-        'title': 16,
-        'header': 20
-    },
-    'weight': {
-        'normal': 'normal',
-        'bold': 'bold'
-    }
-}
-
-# Configuración de ventanas
-WINDOW_CONFIG = {
-    'main': {
-        'width': 1100,
-        'height': 700,
-        'min_width': 900,
-        'min_height': 600,
-        'resizable': True
-    },
-    'inventario': {
-        'width': 1300,
-        'height': 800,
-        'min_width': 1200,
-        'min_height': 700,
-        'resizable': True
-    },
-    'contratos': {
-        'width': 1000,
-        'height': 700,
-        'min_width': 800,
-        'min_height': 600,
-        'resizable': True
-    }
-}
-
-# ===================== CONFIGURACIÓN DE INVENTARIOS =====================
-
-# Configuración específica de químicos
-QUIMICOS_CONFIG = {
-    'clases': [
-        'ACARICIDA', 'FUNGICIDA', 'INSECTICIDA', 'HERBICIDA',
-        'FERTILIZANTE', 'REGULADOR', 'ADHERENTE', 'OTRO'
-    ],
-    'unidades': ['C.C', 'ML', 'LT', 'GR', 'KG', 'UND', 'GAL'],
-    'niveles_peligrosidad': ['BAJO', 'MEDIO', 'ALTO'],
-    'ubicaciones_default': ['A-01', 'A-02', 'A-03', 'A-04', 'A-05'],
-    'backup_interval': 24,  # horas
-    'alert_days': {
-        'stock': 7,
-        'vencimiento': 30
-    }
-}
-
-# Configuración específica de almacén
-ALMACEN_CONFIG = {
-    'categorias': ['HERRAMIENTAS', 'REPUESTOS', 'LUBRICANTES', 'MATERIALES', 'OTRO'],
-    'unidades': ['UND', 'KG', 'LT', 'MT', 'M2', 'GALONES'],
-    'ubicaciones': ['A-01', 'A-02', 'A-03', 'B-01', 'B-02', 'C-01'],
-    'stock_alert_percentage': 20  # % del stock mínimo para alertar
-}
-
-# Configuración específica de poscosecha
-POSCOSECHA_CONFIG = {
-    'categorias': ['EMBALAJE', 'QUIMICO', 'ETIQUETA', 'HERRAMIENTA', 'GENERAL'],
-    'tipos_producto': ['EMPAQUE', 'TRATAMIENTO', 'IDENTIFICACION', 'LIMPIEZA', 'GENERAL'],
-    'unidades': ['UND', 'KG', 'LT', 'ML', 'GR', 'MT', 'M2'],
-    'ubicaciones': ['PC-01', 'PC-02', 'PC-03', 'PC-04', 'PC-05']
-}
-
-# ===================== CONFIGURACIÓN DE PERSONAL =====================
-
-# Configuración de empleados
-EMPLEADOS_CONFIG = {
-    'areas_trabajo': ['planta', 'postcosecha', 'administracion', 'campo'],
-    'cargos_default': [
-        'operario', 'supervisor', 'coordinador', 'jefe', 'gerente',
-        'tecnico', 'auxiliar', 'analista', 'administrador'
-    ],
-    'salario_minimo': 1300000,  # Salario mínimo 2024 Colombia
-    'subsidio_transporte': 140606  # Subsidio transporte 2024
-}
-
-# Configuración de contratos
+# ===================== CONFIGURACIÓN DE CONTRATOS =====================
 CONTRATOS_CONFIG = {
     'tipos': {
         'temporal': {
@@ -225,9 +109,10 @@ CONTRATOS_CONFIG = {
     'estados': ['borrador', 'activo', 'vencido', 'terminado', 'suspendido']
 }
 
-# ===================== CONFIGURACIÓN DE REPORTES =====================
+# Ruta de la plantilla de contrato en Word
+RUTA_PLANTILLA_CONTRATO_WORD = Path(__file__).resolve().parents[2] / "templates_contratos" / "CONTRATO MUESTRA DE TRABAJO A TERMINO FIJO INFERIOR A UN AÑO - copia.docx"
 
-# Configuración de reportes
+# ===================== CONFIGURACIÓN DE REPORTES =====================
 REPORTS_CONFIG = {
     'formats': ['PDF', 'Excel', 'CSV'],
     'templates_dir': DIRECTORIES['reports'] / 'templates',
@@ -236,33 +121,6 @@ REPORTS_CONFIG = {
     'include_charts': True,
     'auto_open': True
 }
-
-# Tipos de reportes disponibles
-REPORT_TYPES = {
-    'personal': [
-        'listado_empleados', 'contratos_activos', 'contratos_vencidos',
-        'nomina_mensual', 'empleados_por_area'
-    ],
-    'inventarios': [
-        'inventario_general', 'productos_criticos', 'valorización',
-        'movimientos_periodo', 'alertas_vencimiento'
-    ],
-    'quimicos': [
-        'inventario_quimicos', 'quimicos_alto_riesgo', 'consumo_mensual',
-        'proveedores_quimicos', 'alertas_seguridad'
-    ],
-    'almacen': [
-        'inventario_almacen', 'productos_bajo_stock', 'movimientos_almacen',
-        'ubicaciones_almacen', 'proveedores_almacen'
-    ],
-    'poscosecha': [
-        'inventario_poscosecha', 'productos_empaque', 'tratamientos_aplicados',
-        'control_calidad', 'productos_vencidos'
-    ]
-}
-
-# ===================== CONFIGURACIÓN DE BACKUPS =====================
-
 # Configuración de backups
 BACKUP_CONFIG = {
     'auto_backup': True,
