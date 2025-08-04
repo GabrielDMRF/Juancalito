@@ -247,17 +247,17 @@ class SistemaInventarioQuimicos:
         style = ttk.Style()
         style.theme_use('clam')
         
-        # Colores del tema
+        # Colores del tema armónicos
         self.colores = {
-            'primary': '#27ae60',
-            'secondary': '#2ecc71', 
-            'success': '#27ae60',
-            'warning': '#f39c12',
-            'danger': '#e74c3c',
-            'info': '#3498db',
-            'dark': '#2c3e50',
-            'light': '#ecf0f1',
-            'background': '#f8f9fa'
+            'primary': '#27ae60',      # Verde esmeralda principal
+            'secondary': '#2ecc71',     # Verde claro
+            'success': '#27ae60',       # Verde esmeralda
+            'warning': '#e67e22',       # Naranja suave
+            'danger': '#e74c3c',        # Rojo coral
+            'info': '#3498db',          # Azul cielo
+            'dark': '#2c3e50',          # Azul oscuro
+            'light': '#ecf0f1',         # Gris claro
+            'background': '#f8f9fa'     # Gris muy claro
         }
         
         # Estilos específicos
@@ -343,11 +343,14 @@ class SistemaInventarioQuimicos:
         right_frame = tk.Frame(header_content, bg=self.colores['primary'])
         right_frame.pack(side=tk.RIGHT)
         
-        # Fecha y hora actual
-        datetime_label = tk.Label(right_frame, text=datetime.now().strftime("%d/%m/%Y - %H:%M"), 
-                                 font=('Segoe UI', 12, 'bold'),
-                                 bg=self.colores['primary'], fg='white')
-        datetime_label.pack(anchor='e')
+        # Fecha y hora actual (reloj en tiempo real)
+        self.datetime_label = tk.Label(right_frame, text=datetime.now().strftime("%d/%m/%Y - %H:%M"), 
+                                      font=('Segoe UI', 12, 'bold'),
+                                      bg=self.colores['primary'], fg='white')
+        self.datetime_label.pack(anchor='e')
+        
+        # Iniciar actualización del reloj
+        self.update_clock_quimicos()
         
         # Estadísticas rápidas
         self.quick_stats_label = tk.Label(right_frame, text="Cargando estadísticas...", 
@@ -477,16 +480,17 @@ class SistemaInventarioQuimicos:
                                 bg='white', fg=self.colores['dark'])
         actions_title.pack(anchor='w', pady=(0, 15))
         
-        # Botones de acción mejorados
+        # Botones de acción con colores armónicos
         actions = [
-            ("➕ Nuevo Químico", self.nuevo_producto, self.colores['success']),
-            ("📥 Entrada de Stock", lambda: self.movimiento_dialog('entrada'), self.colores['info']),
-            ("📤 Salida de Stock", lambda: self.movimiento_dialog('salida'), self.colores['warning']),
-            ("⚠️ Ver Alertas", self.show_alerts_summary, self.colores['danger']),
-            ("📊 Dashboard", self.show_dashboard, '#8e44ad'),
-            ("🔄 Actualizar Todo", self.refresh_all_data, '#16a085'),
-            ("💾 Backup Manual", self.manual_backup, '#34495e'),
-            ("📋 Exportar Datos", self.export_data_dialog, '#7f8c8d')
+            ("➕ Nuevo Químico", self.nuevo_producto, '#27ae60'),           # Verde esmeralda
+            ("📥 Entrada de Stock", lambda: self.movimiento_entrada(), '#3498db'),  # Azul cielo
+            ("📤 Salida de Stock", lambda: self.movimiento_salida(), '#e67e22'),    # Naranja suave
+            ("📋 Historial Movimientos", lambda: self.ver_historial_movimientos(), '#8e44ad'),  # Púrpura
+            ("⚠️ Ver Alertas", self.show_alerts_summary, '#e74c3c'),        # Rojo coral
+            ("📊 Dashboard", self.show_dashboard, '#16a085'),              # Verde azulado
+            ("🔄 Actualizar Todo", self.refresh_all_data, '#7f8c8d'),       # Gris azulado
+            ("💾 Backup Manual", self.manual_backup, '#2c3e50'),           # Azul oscuro
+            ("📋 Exportar Datos", self.export_data_dialog, '#34495e')      # Azul grisáceo
         ]
         
         for text, command, color in actions:
@@ -991,9 +995,45 @@ class SistemaInventarioQuimicos:
         if producto:
             ProductDialog(self.root, self, mode="edit", product_data=producto)
     
+    def movimiento_entrada(self):
+        """Abrir diálogo de entrada de stock"""
+        try:
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+            from utils.movimientos_inventario import MovimientoInventarioDialog
+            dialog = MovimientoInventarioDialog(self.root, 'quimicos', 'entrada')
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al abrir entrada de stock: {e}")
+    
+    def movimiento_salida(self):
+        """Abrir diálogo de salida de stock"""
+        try:
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+            from utils.movimientos_inventario import MovimientoInventarioDialog
+            dialog = MovimientoInventarioDialog(self.root, 'quimicos', 'salida')
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al abrir salida de stock: {e}")
+    
+    def ver_historial_movimientos(self):
+        """Ver historial de movimientos"""
+        try:
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+            from utils.movimientos_inventario import HistorialMovimientosWindow
+            dialog = HistorialMovimientosWindow(self.root, 'quimicos')
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al abrir historial: {e}")
+    
     def movimiento_dialog(self, tipo):
-        """Abrir diálogo de movimiento"""
-        MovementDialog(self.root, self, tipo)
+        """Abrir diálogo de movimiento (método legacy)"""
+        if tipo == 'entrada':
+            self.movimiento_entrada()
+        else:
+            self.movimiento_salida()
     
     def view_product_details(self):
         """Ver detalles completos del producto"""
@@ -1225,6 +1265,19 @@ class SistemaInventarioQuimicos:
         except Exception as e:
             print(f"Error al cerrar: {e}")
             self.root.destroy()
+
+    def update_clock_quimicos(self):
+        """Actualizar el reloj en tiempo real"""
+        try:
+            if hasattr(self, 'datetime_label'):
+                current_time = datetime.now().strftime("%d/%m/%Y - %H:%M")
+                self.datetime_label.config(text=current_time)
+            # Programar próxima actualización en 60 segundos
+            self.root.after(60000, self.update_clock_quimicos)
+        except Exception as e:
+            print(f"Error actualizando reloj químicos: {e}")
+            # Reintentar en 60 segundos aunque haya error
+            self.root.after(60000, self.update_clock_quimicos)
 
 
 # ============= VENTANAS AUXILIARES =============
@@ -1510,40 +1563,6 @@ class ProductDialog:
             messagebox.showerror("Error", f"Error guardando producto: {e}")
 
 
-class MovementDialog:
-    """Diálogo para registrar movimientos"""
-    
-    def __init__(self, parent, main_app, tipo):
-        self.parent = parent
-        self.main_app = main_app
-        self.tipo = tipo
-        
-        self.window = tk.Toplevel(parent)
-        title = f"📥 Entrada de Químicos" if tipo == 'entrada' else f"📤 Salida de Químicos"
-        self.window.title(title)
-        self.window.geometry("550x500")
-        self.window.configure(bg='#f8f9fa')
-        
-        self.center_window()
-        self.window.transient(parent)
-        self.window.grab_set()
-        
-        self.create_widgets()
-    
-    def center_window(self):
-        self.window.update_idletasks()
-        x = (self.window.winfo_screenwidth() // 2) - (550 // 2)
-        y = (self.window.winfo_screenheight() // 2) - (500 // 2)
-        self.window.geometry(f"550x500+{x}+{y}")
-    
-    def create_widgets(self):
-        # Implementación simplificada del diálogo de movimientos
-        tk.Label(self.window, text=f"🚧 Diálogo de {self.tipo.title()} en Desarrollo", 
-                font=('Segoe UI', 16), fg='#7f8c8d').pack(expand=True)
-        
-        tk.Button(self.window, text="❌ Cerrar", command=self.window.destroy,
-                 bg="#e74c3c", fg="white", font=('Segoe UI', 12, 'bold'),
-                 relief='flat', bd=0, padx=20, pady=10, cursor='hand2').pack(pady=20)
 
 
 class ProductDetailsWindow:
@@ -1713,3 +1732,72 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# ============= MOVIMIENTO FUNCIONAL =============
+class MovementDialog:
+    """
+    Diálogo para registrar movimientos (Entrada/Salida)
+    """
+    def __init__(self, parent, app, tipo):
+        self.app = app
+        self.tipo = tipo  # 'entrada' o 'salida'
+        self.window = tk.Toplevel(parent)
+        title = "📥 Entrada de Químicos" if tipo == 'entrada' else "📤 Salida de Químicos"
+        self.window.title(title)
+        self.window.geometry("400x300")
+        self.window.grab_set()
+        self.create_widgets()
+
+    def create_widgets(self):
+        frm = tk.Frame(self.window, padx=10, pady=10)
+        frm.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(frm, text="Producto:").grid(row=0, column=0, sticky='w')
+        cursor = self.app.conn.cursor()
+        cursor.execute("SELECT id, codigo, nombre FROM productos_quimicos WHERE activo=1")
+        productos = cursor.fetchall()
+        self.map = {f"{codigo} - {nombre}": pid for pid, codigo, nombre in productos}
+        self.combo = ttk.Combobox(frm, values=list(self.map.keys()), state='readonly')
+        self.combo.grid(row=0, column=1, pady=5)
+
+        tk.Label(frm, text="Cantidad:").grid(row=1, column=0, sticky='w')
+        self.qty_var = tk.StringVar()
+        tk.Entry(frm, textvariable=self.qty_var).grid(row=1, column=1, pady=5)
+
+        tk.Label(frm, text="Responsable:").grid(row=2, column=0, sticky='w')
+        self.resp_var = tk.StringVar()
+        tk.Entry(frm, textvariable=self.resp_var).grid(row=2, column=1, pady=5)
+
+        tk.Button(frm, text="💾 Guardar", bg=self.app.colores['success'], fg='white',
+                  command=self.save_movement).grid(row=3, column=0, columnspan=2, pady=15)
+
+    def save_movement(self):
+        sel = self.combo.get()
+        if not sel:
+            messagebox.showerror("Error", "Selecciona un producto")
+            return
+        try:
+            qty = int(self.qty_var.get())
+        except ValueError:
+            messagebox.showerror("Error", "Cantidad inválida")
+            return
+        pid = self.map[sel]
+        cursor = self.app.conn.cursor()
+        cursor.execute("SELECT saldo_real FROM productos_quimicos WHERE id=?", (pid,))
+        antes = cursor.fetchone()[0]
+        nuevo = antes + qty if self.tipo == 'entrada' else antes - qty
+        if nuevo < 0:
+            messagebox.showerror("Error", "Stock insuficiente")
+            return
+        cursor.execute(
+            "INSERT INTO movimientos_quimicos "
+            "(producto_id, tipo, cantidad, cantidad_anterior, cantidad_nueva, responsable) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (pid, self.tipo, qty, antes, nuevo, self.resp_var.get())
+        )
+        cursor.execute("UPDATE productos_quimicos SET saldo_real=? WHERE id=?", (nuevo, pid))
+        self.app.conn.commit()
+        messagebox.showinfo("Éxito", f"{'Entrada' if self.tipo=='entrada' else 'Salida'} registrada con éxito")
+        self.app.refresh_all_data()
+        self.window.destroy()
+

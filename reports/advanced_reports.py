@@ -44,10 +44,11 @@ class AdvancedReportsSystem:
                     ORDER BY nombre_completo
                 """,
                 'contratos': """
-                    SELECT c.numero_contrato, e.nombre_completo, c.tipo_contrato,
+                    SELECT c.numero_contrato, e.nombre_completo, tc.nombre as tipo_contrato,
                            c.fecha_inicio, c.fecha_fin, c.salario_base, c.estado
                     FROM contratos c
                     JOIN empleados e ON c.empleado_id = e.id
+                    LEFT JOIN tipos_contrato tc ON c.tipo_contrato_id = tc.id
                     ORDER BY c.fecha_creacion DESC
                 """,
                 'estadisticas': """

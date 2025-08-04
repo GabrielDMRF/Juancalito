@@ -20,7 +20,7 @@ class InventarioAlmacenWindow:
         
         # Crear ventana principal
         self.window = tk.Toplevel(parent)
-        self.window.title("🏭 Sistema de Inventario - ALMACÉN")
+        self.window.title("Sistema de Inventario - ALMACÉN")
         self.window.geometry("1200x800")
         self.window.configure(bg='#f0f0f0')
         
@@ -475,10 +475,13 @@ class InventarioAlmacenWindow:
                 bg='#ffffff', fg='#2c3e50').pack(anchor='w', pady=(0, 15))
         
         actions = [
-            ("✏️ Editar Producto", self.editar_producto, "#3498db"),
-            ("📦 Control de Stock", self.control_stock, "#f39c12"),
-            ("📋 Lista de Pedidos", self.lista_pedidos, "#9b59b6"),
-            ("🔄 Actualizar Datos", self.actualizar_datos, "#27ae60")
+            ("✏️ Editar Producto", self.editar_producto, "#3498db"),        # Azul cielo
+            ("📥 Entrada de Stock", lambda: self.movimiento_entrada(), "#27ae60"),  # Verde esmeralda
+            ("📤 Salida de Stock", lambda: self.movimiento_salida(), "#e67e22"),    # Naranja suave
+            ("📋 Historial Movimientos", lambda: self.ver_historial_movimientos(), "#8e44ad"),  # Púrpura
+            ("📦 Control de Stock", self.control_stock, "#7f8c8d"),         # Gris azulado
+            ("📋 Lista de Pedidos", self.lista_pedidos, "#16a085"),         # Verde azulado
+            ("🔄 Actualizar Datos", self.actualizar_datos, "#2c3e50")       # Azul oscuro
         ]
         
         for text, command, color in actions:
@@ -691,9 +694,45 @@ class InventarioAlmacenWindow:
         cursor.execute("SELECT * FROM productos_almacen WHERE codigo = ?", (codigo,))
         return cursor.fetchone()
     
+    def movimiento_entrada(self):
+        """Abrir diálogo de entrada de stock"""
+        try:
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+            from utils.movimientos_inventario import MovimientoInventarioDialog
+            dialog = MovimientoInventarioDialog(self.window, 'almacen', 'entrada')
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al abrir entrada de stock: {e}")
+    
+    def movimiento_salida(self):
+        """Abrir diálogo de salida de stock"""
+        try:
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+            from utils.movimientos_inventario import MovimientoInventarioDialog
+            dialog = MovimientoInventarioDialog(self.window, 'almacen', 'salida')
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al abrir salida de stock: {e}")
+    
+    def ver_historial_movimientos(self):
+        """Ver historial de movimientos"""
+        try:
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+            from utils.movimientos_inventario import HistorialMovimientosWindow
+            dialog = HistorialMovimientosWindow(self.window, 'almacen')
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al abrir historial: {e}")
+    
     def movimiento(self, tipo):
-        """Registrar movimiento de almacén"""
-        MovimientoAlmacenWindow(self.window, self, tipo)
+        """Registrar movimiento de almacén (método legacy)"""
+        if tipo == 'entrada':
+            self.movimiento_entrada()
+        else:
+            self.movimiento_salida()
     
     def control_stock(self):
         """Control específico de stock de almacén"""

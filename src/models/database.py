@@ -23,7 +23,12 @@ class Empleado(Base):
     salario_base = Column(Integer)
     estado = Column(Boolean, default=True)
     fecha_creacion = Column(DateTime, default=datetime.now)
-    carpeta_personal = Column(String(300))  
+    carpeta_personal = Column(String(300))
+    
+    # Campos adicionales para el contrato
+    lugar_nacimiento = Column(String(100))
+    fecha_nacimiento = Column(Date)
+    nacionalidad = Column(String(50), default="COLOMBIANA")  
     
     # Relaciones
     contratos = relationship("Contrato", back_populates="empleado")
@@ -33,10 +38,9 @@ class Contrato(Base):
     __tablename__ = 'contratos'
     
     id = Column(Integer, primary_key=True)
-    numero_contrato = Column(String(20), unique=True)  # 🆕 NUEVA LÍNEA
+    numero_contrato = Column(String(20), unique=True)
     empleado_id = Column(Integer, ForeignKey('empleados.id'))
-    tipo_contrato_id = Column(Integer, ForeignKey('tipos_contrato.id'))  # 🆕 NUEVA LÍNEA
-    tipo_contrato = Column(String(30))  # temporal/permanente/temporada
+    tipo_contrato_id = Column(Integer, ForeignKey('tipos_contrato.id'))
     fecha_inicio = Column(Date)
     fecha_fin = Column(Date)
     salario_contrato = Column(Integer)

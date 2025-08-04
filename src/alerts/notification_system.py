@@ -19,7 +19,7 @@ class AlertsManager:
     def __init__(self):
         self.db_paths = {
             'personal': 'database/gestion_personal.db',
-            'quimicos': 'database/inventario_quimicos_avanzado.db',
+            'quimicos': 'database/inventario_quimicos.db',
             'almacen': 'database/inventario_almacen.db',
             'poscosecha': 'database/inventario_poscosecha.db'
         }
@@ -110,9 +110,9 @@ class AlertsManager:
                     
                     if system == 'quimicos':
                         cursor.execute("""
-                            SELECT codigo, nombre, saldo_real, clase
+                            SELECT codigo, nombre, saldo, clase
                             FROM productos_quimicos 
-                            WHERE saldo_real <= ? AND activo = 1
+                            WHERE saldo <= ?
                         """, (self.alert_config['stock_critico_threshold'],))
                     elif system == 'almacen':
                         cursor.execute("""
@@ -121,11 +121,16 @@ class AlertsManager:
                             WHERE saldo <= stock_minimo OR saldo <= ?
                         """, (self.alert_config['stock_critico_threshold'],))
                     else:  # poscosecha
-                        cursor.execute("""
-                            SELECT codigo, nombre, saldo, stock_minimo
-                            FROM productos_poscosecha 
-                            WHERE saldo <= stock_minimo OR saldo <= ?
-                        """, (self.alert_config['stock_critico_threshold'],))
+                        # Verificar si la tabla existe
+                        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='productos_poscosecha'")
+                        if cursor.fetchone():
+                            cursor.execute("""
+                                SELECT codigo, nombre, saldo, stock_minimo
+                                FROM productos_poscosecha 
+                                WHERE saldo <= stock_minimo OR saldo <= ?
+                            """, (self.alert_config['stock_critico_threshold'],))
+                        else:
+                            continue  # Saltar si la tabla no existe
                     
                     critical_products = cursor.fetchall()
                     
@@ -158,7 +163,7 @@ class AlertsManager:
                 cursor.execute("""
                     SELECT codigo, nombre, fecha_vencimiento, clase
                     FROM productos_quimicos 
-                    WHERE fecha_vencimiento <= ? AND fecha_vencimiento IS NOT NULL AND activo = 1
+                    WHERE fecha_vencimiento <= ? AND fecha_vencimiento IS NOT NULL
                 """, (cutoff_date,))
                 
                 expiring_products = cursor.fetchall()
@@ -195,9 +200,10 @@ class AlertsManager:
                 cutoff_date = (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d')
                 
                 cursor.execute("""
-                    SELECT c.numero_contrato, e.nombre_completo, c.fecha_fin, c.tipo_contrato
+                    SELECT c.numero_contrato, e.nombre_completo, c.fecha_fin, tc.nombre as tipo_contrato
                     FROM contratos c
                     JOIN empleados e ON c.empleado_id = e.id
+                    LEFT JOIN tipos_contrato tc ON c.tipo_contrato_id = tc.id
                     WHERE c.fecha_fin <= ? AND c.fecha_fin IS NOT NULL AND c.estado = 'activo'
                 """, (cutoff_date,))
                 

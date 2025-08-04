@@ -20,7 +20,7 @@ class InventarioPoscosechaWindow:
         
         # Crear ventana principal
         self.window = tk.Toplevel(parent)
-        self.window.title("🥬 Sistema de Inventario - POSCOSECHA")
+        self.window.title("Sistema de Inventario - POSCOSECHA")
         self.window.geometry("1200x800")
         self.window.configure(bg='#f0f0f0')
         
@@ -542,10 +542,13 @@ class InventarioPoscosechaWindow:
                 bg='#ffffff', fg='#2c3e50').pack(anchor='w', pady=(0, 15))
         
         actions = [
-            ("✏️ Editar Producto", self.editar_producto, "#16a085"),
-            ("📦 Control Empaque", self.control_empaque, "#3498db"),
-            ("🧪 Tratamientos", self.control_tratamientos, "#e67e22"),
-            ("🔄 Actualizar Stock", self.actualizar_stock, "#27ae60")
+            ("✏️ Editar Producto", self.editar_producto, "#16a085"),        # Verde azulado
+            ("📥 Entrada de Stock", lambda: self.movimiento_entrada(), "#27ae60"),  # Verde esmeralda
+            ("📤 Salida de Stock", lambda: self.movimiento_salida(), "#e67e22"),    # Naranja suave
+            ("📋 Historial Movimientos", lambda: self.ver_historial_movimientos(), "#8e44ad"),  # Púrpura
+            ("📦 Control Empaque", self.control_empaque, "#3498db"),         # Azul cielo
+            ("🧪 Tratamientos", self.control_tratamientos, "#7f8c8d"),       # Gris azulado
+            ("🔄 Actualizar Stock", self.actualizar_stock, "#2c3e50")       # Azul oscuro
         ]
         
         for text, command, color in actions:
@@ -767,9 +770,45 @@ class InventarioPoscosechaWindow:
         cursor.execute("SELECT * FROM productos_poscosecha WHERE codigo = ?", (codigo,))
         return cursor.fetchone()
     
+    def movimiento_entrada(self):
+        """Abrir diálogo de entrada de stock"""
+        try:
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+            from utils.movimientos_inventario import MovimientoInventarioDialog
+            dialog = MovimientoInventarioDialog(self.window, 'poscosecha', 'entrada')
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al abrir entrada de stock: {e}")
+    
+    def movimiento_salida(self):
+        """Abrir diálogo de salida de stock"""
+        try:
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+            from utils.movimientos_inventario import MovimientoInventarioDialog
+            dialog = MovimientoInventarioDialog(self.window, 'poscosecha', 'salida')
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al abrir salida de stock: {e}")
+    
+    def ver_historial_movimientos(self):
+        """Ver historial de movimientos"""
+        try:
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+            from utils.movimientos_inventario import HistorialMovimientosWindow
+            dialog = HistorialMovimientosWindow(self.window, 'poscosecha')
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al abrir historial: {e}")
+    
     def movimiento(self, tipo):
-        """Registrar movimiento de poscosecha"""
-        MovimientoPoscosechaWindow(self.window, self, tipo)
+        """Registrar movimiento de poscosecha (método legacy)"""
+        if tipo == 'entrada':
+            self.movimiento_entrada()
+        else:
+            self.movimiento_salida()
     
     def control_empaque(self):
         """Control específico de empaque"""

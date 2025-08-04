@@ -1,7 +1,6 @@
 import tkinter as tk
 import sys
 import os
-import os
 os.environ["PYTHONIOENCODING"] = "utf-8"
 
 # Agregar directorios al path

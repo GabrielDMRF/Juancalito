@@ -9,6 +9,7 @@ import pandas as pd
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils.dataframe import dataframe_to_rows
+from tkcalendar import DateEntry
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from alerts.notification_system import abrir_centro_alertas
 
@@ -21,20 +22,11 @@ class MainWindow:
     def __init__(self, root):
         self.root = root
         self.db = get_db()
+        self.contratos_window = None  # Para controlar única ventana de contratos
         self.configurar_estilos()
         self.setup_main_window()
         self.create_widgets()
-        self.crear_directorio_excel()  # Nueva función para crear directorio de Excel
-    
-    def crear_directorio_excel(self):
-        """Crear directorio para archivos Excel de empleados"""
-        try:
-            self.excel_dir = os.path.join(os.getcwd(), "empleados_excel")
-            os.makedirs(self.excel_dir, exist_ok=True)
-            print(f"Directorio Excel creado: {self.excel_dir}")
-        except Exception as e:
-            print(f"Error creando directorio Excel: {e}")
-            self.excel_dir = os.getcwd()  # Usar directorio actual como fallback
+        # Ya no creamos carpeta separada, usamos empleados_data
     
     def configurar_estilos(self):
         """Configurar estilos visuales mejorados"""
@@ -55,7 +47,7 @@ class MainWindow:
                  background=[('selected', '#2196F3')])
     
     def setup_main_window(self):
-        self.root.title("Sistema de Gestión de Personal - V1.2 (Excel Automático)")
+        self.root.title("Sistema de Gestión de Personal - V1.2")
         self.root.geometry("1100x700")
         self.root.configure(bg='#f0f0f0')
         
@@ -80,14 +72,14 @@ class MainWindow:
         btn_frame.grid(row=1, column=0, columnspan=4, pady=(0, 20))
         
         buttons_info = [
-            ("+ Nuevo Empleado", self.nuevo_empleado, "#27ae60"),
-            ("Editar Empleado", self.editar_empleado, "#3498db"),
-            ("Contratos", self.abrir_contratos, "#8e44ad"), 
-            ("Inventarios", self.abrir_inventarios, "#1abc9c"),
-            ("Centro Alertas", lambda: abrir_centro_alertas(self.root), "#e74c3c"),
-            ("X Inactivar", self.inactivar_empleado, "#e67e22"),
-            ("Ver Excel", self.abrir_excel_empleado, "#9b59b6"),  # Nuevo botón
-            ("Reportes", self.abrir_reportes, "#34495e")
+            ("+ Nuevo Empleado", self.nuevo_empleado, "#27ae60"),      # Verde esmeralda
+            ("Editar Empleado", self.editar_empleado, "#3498db"),      # Azul cielo
+            ("Contratos", self.abrir_contratos, "#8e44ad"),            # Púrpura
+            ("Inventarios", self.abrir_inventarios, "#16a085"),        # Verde azulado
+            ("Centro Alertas", lambda: abrir_centro_alertas(self.root), "#e74c3c"),  # Rojo coral
+            ("X Inactivar", self.inactivar_empleado, "#e67e22"),       # Naranja suave
+            ("Ver Excel", self.abrir_excel_empleado, "#7f8c8d"),       # Gris azulado
+            ("Reportes", self.abrir_reportes, "#2c3e50")              # Azul oscuro
         ]
         
         for i, (text, command, color) in enumerate(buttons_info):
@@ -174,11 +166,11 @@ class MainWindow:
         # Doble click para editar
         self.tree.bind('<Double-1>', self.on_double_click)
         
-        # Cargar datos
-        self.cargar_empleados()
-        
         # Crear barra de estado
         self.create_status_bar()
+        
+        # Cargar datos después de crear todos los widgets
+        self.root.after(100, self.cargar_empleados)
         
         # Configurar grid weights
         self.root.columnconfigure(0, weight=1)
@@ -212,8 +204,8 @@ class MainWindow:
                                     bg='#34495e', fg='white', font=('Arial', 9))
         self.status_label.pack(side=tk.LEFT, padx=10, pady=5)
         
-        # Mostrar información actualizada
-        self.update_status()
+        # Mostrar información actualizada después de que se cree el tree
+        self.root.after(100, self.update_status)
 
     def update_status(self):
         """Actualizar barra de estado"""
@@ -239,7 +231,8 @@ class MainWindow:
     
     def on_search_change(self, *args):
         """Llamada cuando cambian los filtros de búsqueda"""
-        self.cargar_empleados()
+        if hasattr(self, 'tree'):
+            self.cargar_empleados()
     
     def limpiar_filtros(self):
         """Limpiar todos los filtros"""
@@ -309,11 +302,19 @@ class MainWindow:
             print(f"Error al cargar empleados: {e}")
     
     def verificar_excel_empleado(self, cedula):
-        """Verificar si existe archivo Excel para el empleado"""
+        """Verificar si existe archivo Excel para el empleado en empleados_data"""
         try:
-            filename = f"empleado_{cedula}.xlsx"
-            filepath = os.path.join(self.excel_dir, filename)
-            return os.path.exists(filepath)
+            # Buscar en empleados_data por cedula
+            if os.path.exists("empleados_data"):
+                for empleado_folder in os.listdir("empleados_data"):
+                    if cedula.replace(" ", "_") in empleado_folder:
+                        empleado_path = os.path.join("empleados_data", empleado_folder)
+                        if os.path.isdir(empleado_path):
+                            # Buscar cualquier archivo Excel en la carpeta
+                            for file in os.listdir(empleado_path):
+                                if file.endswith('.xlsx'):
+                                    return True
+            return False
         except:
             return False
     
@@ -373,22 +374,44 @@ class MainWindow:
         if not empleado:
             return
         
-        filename = f"empleado_{empleado.cedula}.xlsx"
-        filepath = os.path.join(self.excel_dir, filename)
-        
-        if os.path.exists(filepath):
-            try:
-                os.startfile(filepath)  # Windows
-                messagebox.showinfo("Excel", f"Abriendo archivo Excel de {empleado.nombre_completo}")
-            except:
-                try:
-                    os.system(f'open "{filepath}"')  # macOS
-                except:
-                    os.system(f'xdg-open "{filepath}"')  # Linux
-        else:
+        # Buscar Excel en la carpeta del empleado
+        try:
+            # Limpiar nombre y cédula para crear ruta segura
+            def limpiar_nombre_archivo(texto):
+                if not texto:
+                    return "sin_nombre"
+                caracteres_prohibidos = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
+                texto_limpio = str(texto)
+                for char in caracteres_prohibidos:
+                    texto_limpio = texto_limpio.replace(char, '_')
+                texto_limpio = texto_limpio.replace(" ", "_")
+                return texto_limpio
+            
+            nombre_seguro = limpiar_nombre_archivo(empleado.nombre_completo)
+            cedula_segura = limpiar_nombre_archivo(empleado.cedula)
+            empleado_dir = os.path.join("empleados_data", f"{nombre_seguro}_{cedula_segura}")
+            
+            # Buscar archivos Excel en la carpeta del empleado
+            if os.path.exists(empleado_dir):
+                excel_files = []
+                for file in os.listdir(empleado_dir):
+                    if file.endswith('.xlsx'):
+                        excel_files.append(os.path.join(empleado_dir, file))
+                
+                if excel_files:
+                    # Abrir el más reciente
+                    latest_file = max(excel_files, key=os.path.getmtime)
+                    os.startfile(latest_file)
+                    messagebox.showinfo("Excel", f"Abriendo: {os.path.basename(latest_file)}")
+                    return
+            
+            # Si no se encuentra, preguntar si crear uno nuevo
             if messagebox.askyesno("Excel No Encontrado", 
                                   f"No existe archivo Excel para {empleado.nombre_completo}.\n¿Deseas crearlo ahora?"):
                 self.generar_excel_empleado(empleado, abrir_despues=True)
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Error abriendo Excel: {e}")
     
     def abrir_reportes(self):
         print("Módulo de reportes - Próximamente")
@@ -396,12 +419,27 @@ class MainWindow:
     def abrir_contratos(self):
         """Abrir ventana de gestión de contratos"""
         try:
+            # Verificar si ya hay una ventana de contratos abierta
+            if hasattr(self, 'contratos_window') and self.contratos_window:
+                try:
+                    self.contratos_window.window.lift()
+                    self.contratos_window.window.focus_force()
+                    return
+                except:
+                    # La ventana fue cerrada, continuar creando una nueva
+                    self.contratos_window = None
+            
             from views.contratos_view import ContratosWindow
-            ContratosWindow(self.root, self)
+            self.contratos_window = ContratosWindow(self.root, self)
+            
+            # El protocolo WM_DELETE_WINDOW ya está configurado en ContratosWindow
+            
         except ImportError:
             messagebox.showerror("Error", "Módulo de contratos no encontrado")
         except Exception as e:
             messagebox.showerror("Error", f"Error al abrir contratos: {e}")
+            import traceback
+            traceback.print_exc()
     
     def abrir_inventarios(self):
         """Abrir ventana de gestión de inventarios - VERSIÓN COMPLETA"""
@@ -417,22 +455,49 @@ class MainWindow:
     def generar_excel_empleado(self, empleado, abrir_despues=False):
         """Generar archivo Excel automáticamente para el empleado"""
         try:
-            # Función para limpiar texto Unicode problemático
+            # Función para limpiar texto preservando caracteres especiales
             def limpiar_texto(texto):
                 if texto is None:
                     return "No definido"
-                # Convertir a string y reemplazar caracteres problemáticos
-                texto_str = str(texto)
-                # Reemplazar caracteres Unicode problemáticos
-                texto_limpio = texto_str.encode('ascii', 'ignore').decode('ascii')
-                if not texto_limpio.strip():
+                # Convertir a string y limpiar solo caracteres problemáticos específicos
+                texto_str = str(texto).strip()
+                if not texto_str:
                     return "No definido"
-                return texto_limpio.strip()
+                # Reemplazar solo caracteres que realmente causan problemas en Excel
+                # pero preservar tildes y ñ
+                caracteres_problematicos = {
+                    '\u2705': '✓',  # check mark
+                    '\u274c': '✗',  # cross mark
+                    '\U0001f504': '',  # 🔄
+                    '\U0001f4c4': '',  # 📄
+                    '\u2026': '...',  # ellipsis
+                }
+                for problema, reemplazo in caracteres_problematicos.items():
+                    texto_str = texto_str.replace(problema, reemplazo)
+                return texto_str
             
-            # Nombre del archivo (limpiar cédula)
-            cedula_limpia = limpiar_texto(empleado.cedula).replace(" ", "_")
-            filename = f"empleado_{cedula_limpia}.xlsx"
-            filepath = os.path.join(self.excel_dir, filename)
+            # Crear carpeta del empleado en empleados_data
+            def limpiar_nombre_archivo(texto):
+                if not texto:
+                    return "sin_nombre"
+                caracteres_prohibidos = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
+                texto_limpio = str(texto)
+                for char in caracteres_prohibidos:
+                    texto_limpio = texto_limpio.replace(char, '_')
+                texto_limpio = texto_limpio.replace(" ", "_")
+                return texto_limpio
+            
+            nombre_seguro = limpiar_nombre_archivo(empleado.nombre_completo)
+            cedula_segura = limpiar_nombre_archivo(empleado.cedula)
+            empleado_dir = os.path.join("empleados_data", f"{nombre_seguro}_{cedula_segura}")
+            
+            # Crear carpeta si no existe
+            os.makedirs(empleado_dir, exist_ok=True)
+            
+            # Crear nombre de archivo con timestamp
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"empleado_{cedula_segura}_{timestamp}.xlsx"
+            filepath = os.path.join(empleado_dir, filename)
             
             # Crear workbook
             wb = openpyxl.Workbook()
@@ -646,19 +711,19 @@ class FullInventarioWindow:
         # Crear ventana principal
         self.window = tk.Toplevel(parent)
         self.window.title("CENTRO DE INVENTARIOS - Sistema Completo")
-        self.window.geometry("1400x900")
+        self.window.geometry("1200x750")
         self.window.configure(bg='#f8f9fa')
         
         # Configurar ventana
         self.window.resizable(True, True)
-        self.window.minsize(1200, 700)
+        self.window.minsize(1000, 600)
         
         # Centrar ventana
         self.center_window()
         
-        # Hacer modal
-        self.window.transient(parent)
-        self.window.grab_set()
+        # No hacer modal para que tenga controles estándar de Windows
+        # self.window.transient(parent)
+        # self.window.grab_set()
         
         # Configurar estilos y colores
         self.setup_styles()
@@ -671,19 +736,22 @@ class FullInventarioWindow:
         
         # Cargar datos iniciales
         self.load_initial_data()
+        
+        # Configurar protocolo de cierre para que funcione el botón X
+        self.window.protocol("WM_DELETE_WINDOW", self.close_window)
     
     def setup_styles(self):
-        """Configurar estilos y colores"""
+        """Configurar estilos y colores armónicos"""
         self.colors = {
-            'primary': '#2c3e50',
-            'secondary': '#34495e',
-            'success': '#27ae60',
-            'info': '#3498db',
-            'warning': '#f39c12',
-            'danger': '#e74c3c',
-            'quimicos': '#27ae60',
-            'almacen': '#3498db',
-            'poscosecha': '#16a085'
+            'primary': '#2c3e50',      # Azul oscuro principal
+            'secondary': '#34495e',     # Azul grisáceo
+            'success': '#27ae60',       # Verde esmeralda
+            'info': '#3498db',          # Azul cielo
+            'warning': '#e67e22',       # Naranja suave
+            'danger': '#e74c3c',        # Rojo coral
+            'quimicos': '#27ae60',      # Verde para químicos
+            'almacen': '#3498db',       # Azul para almacén
+            'poscosecha': '#16a085'     # Verde azulado para poscosecha
         }
         
         # Configurar estilos de TreeView
@@ -837,19 +905,13 @@ class FullInventarioWindow:
                               bg=self.colors['primary'], fg='white')
         title_label.pack(side=tk.LEFT)
         
-        # Fecha y hora actual
-        datetime_label = tk.Label(header_content, text=datetime.now().strftime("%d/%m/%Y - %H:%M"),
+        # Fecha y hora actual (reloj en tiempo real)
+        self.datetime_label = tk.Label(header_content, text=datetime.now().strftime("%d/%m/%Y - %H:%M"),
                                  font=('Arial', 12),
                                  bg=self.colors['primary'], fg='white')
-        datetime_label.pack(side=tk.RIGHT, padx=(0, 20))
+        self.datetime_label.pack(side=tk.RIGHT, padx=(0, 20))
         
-        # Botón cerrar
-        close_btn = tk.Button(header_content, text="X Cerrar",
-                             command=self.close_window,
-                             bg=self.colors['danger'], fg='white',
-                             font=('Arial', 10, 'bold'),
-                             relief='flat', bd=0, padx=15, pady=5, cursor='hand2')
-        close_btn.pack(side=tk.RIGHT)
+        # El reloj se iniciará después en load_initial_data
     
     def create_dashboard_tab(self):
         """Crear pestaña de dashboard"""
@@ -996,8 +1058,13 @@ class FullInventarioWindow:
             
             print("Datos iniciales cargados exitosamente")
             
+            # Iniciar el reloj después de que todo esté listo
+            self.update_clock()
+            
         except Exception as e:
             print(f"Error cargando datos iniciales: {e}")
+            # Iniciar el reloj aunque haya errores
+            self.update_clock()
     
     def load_sample_quimicos(self):
         """Cargar datos de ejemplo para químicos"""
@@ -1166,6 +1233,21 @@ class FullInventarioWindow:
         """Cerrar ventana"""
         self.window.destroy()
 
+    def update_clock(self):
+        """Actualizar el reloj en tiempo real"""
+        try:
+            if hasattr(self, 'datetime_label'):
+                current_time = datetime.now().strftime("%d/%m/%Y - %H:%M")
+                self.datetime_label.config(text=current_time)
+            # Programar próxima actualización en 60 segundos
+            self.window.after(60000, self.update_clock)
+        except Exception as e:
+            print(f"Error actualizando reloj: {e}")
+            # Reintentar en 60 segundos aunque haya error
+            self.window.after(60000, self.update_clock)
+
+
+
 
 # ================= PESTAÑA INDIVIDUAL PARA CADA SISTEMA =================
 
@@ -1319,19 +1401,22 @@ class InventorySystemTab:
         actions_frame = tk.Frame(parent, bg='#f8f9fa')
         actions_frame.pack(fill=tk.X, pady=(10, 0))
         
-        # Botones de acción
+        # Botones de acción con colores armónicos
         actions = [
-            ("+ Nuevo Producto", self.new_product, self.color),
-            ("Editar", self.edit_product, '#3498db'),
-            ("Eliminar", self.delete_product, '#e74c3c'),
-            ("Exportar", self.export_products, '#f39c12')
+            ("+ Nuevo Producto", self.new_product, '#2c3e50'),
+            ("✏️ Editar", self.edit_product, '#34495e'),
+            ("📥 Entrada Stock", self.movimiento_entrada, '#27ae60'),
+            ("📤 Salida Stock", self.movimiento_salida, '#e74c3c'),
+            ("📋 Historial", self.ver_historial_movimientos, '#8e44ad'),
+            ("🗑️ Eliminar", self.delete_product, '#c0392b'),
+            ("📊 Exportar", self.export_products, '#7f8c8d')
         ]
         
         for text, command, color in actions:
             btn = tk.Button(actions_frame, text=text, command=command,
                            bg=color, fg='white', font=('Arial', 10, 'bold'),
-                           relief='flat', bd=0, padx=20, pady=8, cursor='hand2')
-            btn.pack(side=tk.LEFT, padx=5)
+                           relief='flat', bd=0, padx=15, pady=8, cursor='hand2')
+            btn.pack(side=tk.LEFT, padx=3)
             self.add_hover_effect(btn, color)
     
     def load_data(self):
@@ -1538,6 +1623,39 @@ class InventorySystemTab:
                 
             except Exception as e:
                 messagebox.showerror("Error", f"Error exportando: {e}")
+
+    def movimiento_entrada(self):
+        """Abrir diálogo de entrada de stock"""
+        try:
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+            from utils.movimientos_inventario import MovimientoInventarioDialog
+            dialog = MovimientoInventarioDialog(self.parent, self.system_type, 'entrada')
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al abrir entrada de stock: {e}")
+
+    def movimiento_salida(self):
+        """Abrir diálogo de salida de stock"""
+        try:
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+            from utils.movimientos_inventario import MovimientoInventarioDialog
+            dialog = MovimientoInventarioDialog(self.parent, self.system_type, 'salida')
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al abrir salida de stock: {e}")
+
+    def ver_historial_movimientos(self):
+        """Ver historial de movimientos"""
+        try:
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+            from utils.movimientos_inventario import HistorialMovimientosWindow
+            dialog = HistorialMovimientosWindow(self.parent, self.system_type)
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al abrir historial: {e}")
     
     def add_hover_effect(self, button, color):
         """Agregar efecto hover"""
@@ -1891,65 +2009,106 @@ class EmpleadosWindow:
         self.window = tk.Toplevel(parent)
         titulo = "Editar Empleado" if modo == "editar" else "Nuevo Empleado"
         self.window.title(titulo)
-        self.window.geometry("500x450")
-        self.window.configure(bg='#ecf0f1')
+        self.window.geometry("650x600")
+        self.window.configure(bg='#f8f9fa')
+        
+        # Configurar ventana
+        self.window.resizable(True, True)
+        self.window.minsize(600, 550)
+        
+        # Centrar ventana
+        self.center_window()
+        
+        # Hacer modal
+        self.window.transient(parent)
+        self.window.grab_set()
+        
         self.create_widgets()
         
         # Si es edición, cargar datos
         if modo == "editar" and empleado:
             self.cargar_datos_empleado()
     
+    def center_window(self):
+        """Centrar ventana en la pantalla"""
+        self.window.update_idletasks()
+        x = (self.window.winfo_screenwidth() // 2) - (650 // 2)
+        y = (self.window.winfo_screenheight() // 2) - (600 // 2)
+        self.window.geometry(f"650x600+{x}+{y}")
+    
     def create_widgets(self):
-        # Frame principal
-        main_frame = ttk.Frame(self.window, padding="20")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        # Frame principal con color de fondo
+        main_frame = tk.Frame(self.window, bg='#f8f9fa', padx=20, pady=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Título
+        # Título con mejor estilo
         titulo_texto = "Editar Empleado" if self.modo == "editar" else "Registrar Nuevo Empleado"
-        title_label = tk.Label(main_frame, text=titulo_texto, font=('Arial', 16, 'bold'),
-                              bg='#ecf0f1', fg='#2c3e50')
-        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
+        title_label = tk.Label(main_frame, text=titulo_texto, font=('Arial', 18, 'bold'),
+                              bg='#f8f9fa', fg='#2c3e50')
+        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 25), sticky='ew')
         
         # Campos
-        campos = [
+        # Campos normales
+        campos_normales = [
             ("Nombre Completo:", "entry_nombre"),
             ("Cedula:", "entry_cedula"),
             ("Telefono:", "entry_telefono"),
             ("Email:", "entry_email"),
             ("Direccion:", "entry_direccion"),
+            ("Lugar de Nacimiento:", "entry_lugar_nacimiento"),
+            ("Nacionalidad:", "entry_nacionalidad"),
             ("Cargo:", "entry_cargo"),
             ("Salario Base:", "entry_salario")
         ]
         
-        for i, (label_text, entry_name) in enumerate(campos, 1):
-            label = ttk.Label(main_frame, text=label_text, font=('Arial', 10, 'bold'))
-            label.grid(row=i, column=0, sticky=tk.W, pady=8, padx=(0, 10))
+        row = 1
+        for label_text, entry_name in campos_normales:
+            label = tk.Label(main_frame, text=label_text, font=('Arial', 11, 'bold'),
+                           bg='#f8f9fa', fg='#2c3e50')
+            label.grid(row=row, column=0, sticky=tk.W, pady=10, padx=(0, 15))
             
-            entry = ttk.Entry(main_frame, width=30, font=('Arial', 10))
-            entry.grid(row=i, column=1, pady=8)
+            entry = ttk.Entry(main_frame, width=30, font=('Arial', 11))
+            entry.grid(row=row, column=1, pady=10, sticky='ew')
             setattr(self, entry_name, entry)
+            row += 1
+        
+        # Campo de fecha de nacimiento con calendario
+        date_label = tk.Label(main_frame, text="Fecha de Nacimiento:", font=('Arial', 11, 'bold'),
+                            bg='#f8f9fa', fg='#2c3e50')
+        date_label.grid(row=row, column=0, sticky=tk.W, pady=10, padx=(0, 15))
+        self.date_fecha_nacimiento = DateEntry(main_frame, width=27, background='darkblue', foreground='white', 
+                                              borderwidth=2, date_pattern='dd/mm/yyyy', font=('Arial', 10))
+        self.date_fecha_nacimiento.grid(row=row, column=1, pady=8)
+        row += 1
         
         # Área como combobox
-        ttk.Label(main_frame, text="Area:", font=('Arial', 10, 'bold')).grid(row=8, column=0, sticky=tk.W, pady=8, padx=(0, 10))
-        self.combo_area = ttk.Combobox(main_frame, values=["planta", "postcosecha"], width=27, font=('Arial', 10))
-        self.combo_area.grid(row=8, column=1, pady=8)
+        area_label = tk.Label(main_frame, text="Area:", font=('Arial', 11, 'bold'),
+                            bg='#f8f9fa', fg='#2c3e50')
+        area_label.grid(row=11, column=0, sticky=tk.W, pady=10, padx=(0, 15))
+        self.combo_area = ttk.Combobox(main_frame, values=["planta", "postcosecha"], width=27, font=('Arial', 11))
+        self.combo_area.grid(row=11, column=1, pady=10, sticky='ew')
         
         # Estado (solo para edición)
         if self.modo == "editar":
-            ttk.Label(main_frame, text="Estado:", font=('Arial', 10, 'bold')).grid(row=9, column=0, sticky=tk.W, pady=8, padx=(0, 10))
-            self.combo_estado = ttk.Combobox(main_frame, values=["Activo", "Inactivo"], width=27, font=('Arial', 10))
-            self.combo_estado.grid(row=9, column=1, pady=8)
+            estado_label = tk.Label(main_frame, text="Estado:", font=('Arial', 11, 'bold'),
+                                  bg='#f8f9fa', fg='#2c3e50')
+            estado_label.grid(row=12, column=0, sticky=tk.W, pady=10, padx=(0, 15))
+            self.combo_estado = ttk.Combobox(main_frame, values=["Activo", "Inactivo"], width=27, font=('Arial', 11))
+            self.combo_estado.grid(row=12, column=1, pady=10, sticky='ew')
+        
+        # Configurar expansión de columnas
+        main_frame.grid_columnconfigure(1, weight=1)
         
         # Botones
-        btn_frame = tk.Frame(main_frame, bg='#ecf0f1')
-        btn_row = 10 if self.modo == "editar" else 9
+        btn_frame = tk.Frame(main_frame, bg='#f8f9fa')
+        btn_row = 13 if self.modo == "editar" else 12
         btn_frame.grid(row=btn_row, column=0, columnspan=2, pady=25)
         
-        # Botón principal con texto especial para nuevo empleado
+        # Botón principal
         if self.modo == "nuevo":
-            texto_boton = "Guardar + Excel"
+            texto_boton = "Guardar Empleado"
         else:
-            texto_boton = "Actualizar"
+            texto_boton = "Actualizar Empleado"
             
         save_btn = tk.Button(btn_frame, text=texto_boton, command=self.guardar_empleado,
                            bg="#27ae60", fg="white", font=('Arial', 10, 'bold'),
@@ -1978,6 +2137,10 @@ class EmpleadosWindow:
         self.entry_telefono.insert(0, self.empleado.telefono or "")
         self.entry_email.insert(0, self.empleado.email or "")
         self.entry_direccion.insert(0, self.empleado.direccion or "")
+        self.entry_lugar_nacimiento.insert(0, self.empleado.lugar_nacimiento or "")
+        if self.empleado.fecha_nacimiento:
+            self.date_fecha_nacimiento.set_date(self.empleado.fecha_nacimiento)
+        self.entry_nacionalidad.insert(0, self.empleado.nacionalidad or "COLOMBIANA")
         self.combo_area.set(self.empleado.area_trabajo or "")
         self.entry_cargo.insert(0, self.empleado.cargo or "")
         self.entry_salario.insert(0, str(self.empleado.salario_base or ""))
@@ -2017,6 +2180,9 @@ class EmpleadosWindow:
                     self.entry_salario.focus()
                     return
             
+            # Procesar fecha de nacimiento
+            fecha_nacimiento = self.date_fecha_nacimiento.get_date()
+            
             if self.modo == "nuevo":
                 # Crear nuevo empleado
                 empleado = Empleado(
@@ -2025,6 +2191,9 @@ class EmpleadosWindow:
                     telefono=self.entry_telefono.get().strip(),
                     email=self.entry_email.get().strip(),
                     direccion=self.entry_direccion.get().strip(),
+                    lugar_nacimiento=self.entry_lugar_nacimiento.get().strip(),
+                    fecha_nacimiento=fecha_nacimiento,
+                    nacionalidad=self.entry_nacionalidad.get().strip(),
                     area_trabajo=self.combo_area.get(),
                     cargo=self.entry_cargo.get().strip(),
                     salario_base=salario
@@ -2032,29 +2201,8 @@ class EmpleadosWindow:
                 self.db.add(empleado)
                 self.db.commit()  # Hacer commit para obtener el ID
                 
-                # ===== GENERAR EXCEL AUTOMÁTICAMENTE =====
-                print(f"🔄 Generando Excel automáticamente para {empleado.nombre_completo}...")
-                
-                if self.main_window.generar_excel_empleado(empleado):
-                    mensaje = f"✅ Empleado creado exitosamente\n📄 Excel generado automáticamente: empleado_{empleado.cedula}.xlsx"
-                    
-                    # Preguntar si quiere abrir el Excel
-                    if messagebox.askyesno("Excel Generado", 
-                                          f"Empleado {empleado.nombre_completo} registrado exitosamente.\n\n"
-                                          f"📄 Se generó automáticamente su archivo Excel.\n\n"
-                                          f"¿Deseas abrir el archivo Excel ahora?"):
-                        # Abrir Excel automáticamente
-                        filename = f"empleado_{empleado.cedula}.xlsx"
-                        filepath = os.path.join(self.main_window.excel_dir, filename)
-                        try:
-                            os.startfile(filepath)  # Windows
-                        except:
-                            try:
-                                os.system(f'open "{filepath}"')  # macOS
-                            except:
-                                os.system(f'xdg-open "{filepath}"')  # Linux
-                else:
-                    mensaje = "Empleado creado, pero hubo un error generando el Excel"
+                mensaje = f"✅ Empleado {empleado.nombre_completo} creado exitosamente"
+                print(f"Empleado creado: {empleado.nombre_completo}")
                 
             else:
                 # Actualizar empleado existente
@@ -2063,6 +2211,9 @@ class EmpleadosWindow:
                 self.empleado.telefono = self.entry_telefono.get().strip()
                 self.empleado.email = self.entry_email.get().strip()
                 self.empleado.direccion = self.entry_direccion.get().strip()
+                self.empleado.lugar_nacimiento = self.entry_lugar_nacimiento.get().strip()
+                self.empleado.fecha_nacimiento = fecha_nacimiento
+                self.empleado.nacionalidad = self.entry_nacionalidad.get().strip()
                 self.empleado.area_trabajo = self.combo_area.get()
                 self.empleado.cargo = self.entry_cargo.get().strip()
                 self.empleado.salario_base = salario
@@ -2098,6 +2249,10 @@ class EmpleadosWindow:
         self.entry_telefono.delete(0, tk.END)
         self.entry_email.delete(0, tk.END)
         self.entry_direccion.delete(0, tk.END)
+        self.entry_lugar_nacimiento.delete(0, tk.END)
+        self.date_fecha_nacimiento.set_date(date.today())
+        self.entry_nacionalidad.delete(0, tk.END)
+        self.entry_nacionalidad.insert(0, "COLOMBIANA")
         self.combo_area.set('')
         self.entry_cargo.delete(0, tk.END)
         self.entry_salario.delete(0, tk.END)

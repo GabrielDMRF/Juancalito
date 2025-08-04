@@ -114,8 +114,7 @@ from pathlib import Path
 # Directorio raíz del proyecto
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
-# Ruta de la plantilla de contrato en Word
-RUTA_PLANTILLA_CONTRATO_WORD = PROJECT_ROOT / 'plantillas' / 'plantilla_contrato.docx'
+
 
 
 # ===================== CONFIGURACIÓN DE REPORTES =====================
