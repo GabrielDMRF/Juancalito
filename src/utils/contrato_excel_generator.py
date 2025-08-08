@@ -522,7 +522,7 @@ def abrir_generador_contratos_excel(parent, contratos_window, contrato):
                     return f"{numero:,} PESOS"
             
             # Reemplazar variables con llaves en toda la plantilla
-            print(f"🔄 Buscando y reemplazando variables en la plantilla...")
+            print(f"Buscando y reemplazando variables en la plantilla...")
             
             # Diccionario de variables disponibles
             variables = {
@@ -625,20 +625,20 @@ def abrir_generador_contratos_excel(parent, contratos_window, contrato):
                                 if celda_ref in celdas_especificas:
                                     cell.value = celdas_especificas[celda_ref]
                                     referencias_encontradas += 1
-                                    print(f"   ✅ Reemplazada referencia {celda_ref} -> {celdas_especificas[celda_ref]}")
+                                    print(f"   Reemplazada referencia {celda_ref} -> {celdas_especificas[celda_ref]}")
             
-            print(f"   📊 Total de referencias reemplazadas: {referencias_encontradas}")
+            print(f"   Total de referencias reemplazadas: {referencias_encontradas}")
             
             if variables_encontradas == 0 and referencias_encontradas == 0:
-                print("   ⚠️ No se encontraron variables ni referencias para reemplazar")
-                print("   💡 Sugerencia: Agrega variables como {NOMBRE_EMPLEADO} o referencias a BASE DE DATOS")
+                print("   No se encontraron variables ni referencias para reemplazar")
+                print("   Sugerencia: Agrega variables como {NOMBRE_EMPLEADO} o referencias a BASE DE DATOS")
             
             # Función para limpiar nombres de archivo
             def limpiar_nombre_archivo(texto):
                 if not texto:
                     return "sin_nombre"
                 # Remover caracteres problemáticos para nombres de archivo
-                caracteres_prohibidos = ['<', '>', ':', '"', '/', '\\', '|', '?', '*', '\u2705', '\u274c', '\U0001f504', '\U0001f4c4']
+                caracteres_prohibidos = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
                 texto_limpio = str(texto)
                 for char in caracteres_prohibidos:
                     texto_limpio = texto_limpio.replace(char, '_')
@@ -686,7 +686,7 @@ def abrir_generador_contratos_excel(parent, contratos_window, contrato):
     window.geometry(f"400x300+{x}+{y}")
     
     # Contenido de la ventana
-    tk.Label(window, text="📊 Generador de Contrato Excel", 
+    tk.Label(window, text="Generador de Contrato Excel", 
             font=('Segoe UI', 16, 'bold'), bg='#f8f9fa', fg='#2c3e50').pack(pady=20)
     
     tk.Label(window, text=f"Empleado: {contrato.empleado.nombre_completo if contrato.empleado else 'No encontrado'}", 
@@ -695,10 +695,10 @@ def abrir_generador_contratos_excel(parent, contratos_window, contrato):
     tk.Label(window, text=f"Contrato: {contrato.numero_contrato or 'Sin número'}", 
             font=('Segoe UI', 12), bg='#f8f9fa').pack(pady=10)
     
-    tk.Button(window, text="🚀 Generar Contrato Excel", command=generar_contrato_excel,
+    tk.Button(window, text="Generar Contrato Excel", command=generar_contrato_excel,
              bg="#27ae60", fg="white", font=('Segoe UI', 12, 'bold'),
              relief='flat', bd=0, padx=20, pady=10, cursor='hand2').pack(pady=20)
     
-    tk.Button(window, text="❌ Cerrar", command=window.destroy,
+    tk.Button(window, text="Cerrar", command=window.destroy,
              bg="#e74c3c", fg="white", font=('Segoe UI', 12, 'bold'),
              relief='flat', bd=0, padx=20, pady=10, cursor='hand2').pack(pady=10)

@@ -28,16 +28,30 @@ class ContratosWindow:
         self.main_window = main_window
         self.db = get_db()
         
-        # Crear ventana de Contratos
+        # Crear ventana de Contratos responsive
         self.window = tk.Toplevel(parent)
         self.window.title("Gestión de Contratos")
-        self.window.geometry("1100x650")  # Tamaño más compacto
         self.window.configure(bg='#ecf0f1')
         self.window.resizable(True, True)
         self.window.minsize(900, 500)
         
+        # Configurar tamaño inicial responsive
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+        
+        # Calcular tamaño inicial (80% de la pantalla)
+        window_width = min(1200, int(screen_width * 0.8))
+        window_height = min(750, int(screen_height * 0.8))
+        
         # Centrar ventana
-        self.center_window()
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        
+        self.window.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        
+        # Configurar expansión de grid
+        self.window.grid_rowconfigure(0, weight=1)
+        self.window.grid_columnconfigure(0, weight=1)
         # No hacer modal para que tenga controles estándar de Windows
         # self.window.transient(parent)
         # self.window.grab_set()
@@ -76,26 +90,26 @@ class ContratosWindow:
             except:
                 pass
     
-    def center_window(self):
-        """Centrar ventana en la pantalla"""
-        self.window.update_idletasks()
-        x = (self.window.winfo_screenwidth() // 2) - (1200 // 2)
-        y = (self.window.winfo_screenheight() // 2) - (750 // 2)
-        self.window.geometry(f"1200x750+{x}+{y}")
+
     
     def create_widgets(self):
-        # Frame principal
+        # Frame principal responsive
         main_frame = ttk.Frame(self.window, padding="20")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        # Título mejorado
+        # Configurar expansión del frame principal
+        main_frame.grid_rowconfigure(3, weight=1)  # La tabla se expandirá
+        main_frame.grid_columnconfigure(0, weight=1)
+        
+        # Título responsive
         title = tk.Label(main_frame, text="📋 Gestión de Contratos Laborales", 
                          font=('Segoe UI', 18, 'bold'), bg='#ecf0f1', fg='#2c3e50')
         title.grid(row=0, column=0, columnspan=4, pady=(0, 25))
         
-        # Frame para botones principales
+        # Frame para botones principales responsive
         btn_frame = tk.Frame(main_frame, bg='#ecf0f1')
-        btn_frame.grid(row=1, column=0, columnspan=4, pady=(0, 20))
+        btn_frame.grid(row=1, column=0, columnspan=4, pady=(0, 20), sticky=(tk.W, tk.E))
+        btn_frame.grid_columnconfigure(0, weight=1)
         
         # Botones principales con iconos y colores mejorados
         buttons_info = [
@@ -109,12 +123,16 @@ class ContratosWindow:
             ("❌ Cerrar", self.window.destroy, "#e74c3c", "Cerrar ventana")
         ]
         
+        # Configurar grid para botones responsive
+        for i in range(8):
+            btn_frame.grid_columnconfigure(i, weight=1)
+        
         for i, (text, command, color, tooltip) in enumerate(buttons_info):
             btn = tk.Button(btn_frame, text=text, command=command,
                            bg=color, fg='white', font=('Segoe UI', 10, 'bold'),
-                           relief='flat', bd=0, padx=18, pady=10, cursor='hand2',
+                           relief='flat', bd=0, padx=15, pady=8, cursor='hand2',
                            activebackground=self.darken_color(color))
-            btn.grid(row=0, column=i, padx=5)
+            btn.grid(row=0, column=i, padx=3, pady=2, sticky=(tk.W, tk.E))
             
             # Agregar efecto hover
             self.add_hover_effect(btn, color)
@@ -139,11 +157,11 @@ class ContratosWindow:
         contratos_frame = ttk.LabelFrame(main_frame, text="📄 Lista de Contratos", padding="15")
         contratos_frame.grid(row=3, column=0, columnspan=4, pady=(15, 0), sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        # Treeview para mostrar contratos con más columnas
+        # Treeview responsive para mostrar contratos con más columnas
         columns = ('ID', 'Número', 'Empleado', 'Cédula', 'Tipo', 'Inicio', 'Fin', 'Salario', 'Estado', 'Archivos')
-        self.tree = ttk.Treeview(contratos_frame, columns=columns, show='headings', height=18)
+        self.tree = ttk.Treeview(contratos_frame, columns=columns, show='headings')
         
-        # Configurar columnas con anchos optimizados
+        # Configurar columnas con anchos mínimos y expansión
         column_widths = {
             'ID': 50, 'Número': 120, 'Empleado': 200, 'Cédula': 100,
             'Tipo': 120, 'Inicio': 100, 'Fin': 100, 'Salario': 120, 
@@ -152,7 +170,7 @@ class ContratosWindow:
         
         for col in columns:
             self.tree.heading(col, text=col, command=lambda c=col: self.sort_column(c))
-            self.tree.column(col, width=column_widths.get(col, 100))
+            self.tree.column(col, width=column_widths.get(col, 100), minwidth=50)
         
         # Scrollbars mejoradas
         v_scrollbar = ttk.Scrollbar(contratos_frame, orient=tk.VERTICAL, command=self.tree.yview)
@@ -535,13 +553,33 @@ class NuevoContratoWindow:
         self.contrato = contrato
         self.db = contratos_window.db
         
+        # Crear ventana responsive
         self.window = tk.Toplevel(parent)
         self.window.title("Nuevo Contrato" if not contrato else "Editar Contrato")
-        self.window.geometry("600x700")
         self.window.configure(bg='#f8f9fa')
         
+        # Configurar ventana responsive
+        self.window.resizable(True, True)
+        self.window.minsize(600, 700)
+        
+        # Configurar tamaño inicial responsive
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+        
+        # Calcular tamaño inicial (65% de la pantalla)
+        window_width = min(700, int(screen_width * 0.65))
+        window_height = min(800, int(screen_height * 0.65))
+        
         # Centrar ventana
-        self.center_window()
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        
+        self.window.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        
+        # Configurar expansión de grid
+        self.window.grid_rowconfigure(0, weight=1)
+        self.window.grid_columnconfigure(0, weight=1)
+        
         self.window.transient(parent)
         self.window.grab_set()
         
@@ -549,18 +587,18 @@ class NuevoContratoWindow:
         if contrato:
             self.cargar_datos_contrato()
     
-    def center_window(self):
-        self.window.update_idletasks()
-        x = (self.window.winfo_screenwidth() // 2) - (600 // 2)
-        y = (self.window.winfo_screenheight() // 2) - (700 // 2)
-        self.window.geometry(f"600x700+{x}+{y}")
+
     
     def create_widgets(self):
-        # Frame principal
+        # Frame principal responsive
         main_frame = ttk.Frame(self.window, padding="20")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        # Título
+        # Configurar expansión del frame principal
+        main_frame.grid_rowconfigure(8, weight=1)  # Los botones se expandirán
+        main_frame.grid_columnconfigure(1, weight=1)  # Los campos se expandirán
+        
+        # Título responsive
         title_text = "Nuevo Contrato" if not self.contrato else "Editar Contrato"
         title = tk.Label(main_frame, text=f"📋 {title_text}", 
                         font=('Segoe UI', 16, 'bold'), bg='#f8f9fa', fg='#2c3e50')
@@ -578,74 +616,74 @@ class NuevoContratoWindow:
         # Campos del formulario
         row = 1
         
-        # Número de contrato
+        # Número de contrato responsive
         tk.Label(main_frame, text="Número de Contrato:", font=('Segoe UI', 10, 'bold'), 
                 bg='#f8f9fa').grid(row=row, column=0, sticky=tk.W, pady=5)
-        tk.Entry(main_frame, textvariable=self.numero_var, font=('Segoe UI', 10), 
-                width=30).grid(row=row, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 0))
+        tk.Entry(main_frame, textvariable=self.numero_var, font=('Segoe UI', 10)).grid(row=row, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 10))
         
-        # Empleado
+        # Empleado responsive
         row += 1
         tk.Label(main_frame, text="Empleado:", font=('Segoe UI', 10, 'bold'), 
                 bg='#f8f9fa').grid(row=row, column=0, sticky=tk.W, pady=5)
         self.empleado_combo = ttk.Combobox(main_frame, textvariable=self.empleado_var, 
-                                          font=('Segoe UI', 10), width=27, state="readonly")
-        self.empleado_combo.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 0))
+                                          font=('Segoe UI', 10), state="readonly")
+        self.empleado_combo.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 10))
         self.cargar_empleados()
         
-        # Tipo de contrato
+        # Tipo de contrato responsive
         row += 1
         tk.Label(main_frame, text="Tipo de Contrato:", font=('Segoe UI', 10, 'bold'), 
                 bg='#f8f9fa').grid(row=row, column=0, sticky=tk.W, pady=5)
         self.tipo_combo = ttk.Combobox(main_frame, textvariable=self.tipo_var, 
-                                      font=('Segoe UI', 10), width=27, state="readonly")
+                                      font=('Segoe UI', 10), state="readonly")
         self.tipo_combo['values'] = ["temporal", "permanente", "temporada"]
-        self.tipo_combo.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 0))
+        self.tipo_combo.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 10))
         
-        # Fecha inicio con calendario
+        # Fecha inicio con calendario responsive
         row += 1
         tk.Label(main_frame, text="Fecha de Inicio:", font=('Segoe UI', 10, 'bold'), 
                 bg='#f8f9fa').grid(row=row, column=0, sticky=tk.W, pady=5)
-        self.date_fecha_inicio = DateEntry(main_frame, width=27, background='darkblue', foreground='white', 
+        self.date_fecha_inicio = DateEntry(main_frame, background='darkblue', foreground='white', 
                                           borderwidth=2, date_pattern='dd/mm/yyyy', font=('Segoe UI', 10))
-        self.date_fecha_inicio.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 0))
+        self.date_fecha_inicio.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 10))
         
-        # Fecha fin con calendario
+        # Fecha fin con calendario responsive
         row += 1
         tk.Label(main_frame, text="Fecha de Fin:", font=('Segoe UI', 10, 'bold'), 
                 bg='#f8f9fa').grid(row=row, column=0, sticky=tk.W, pady=5)
-        self.date_fecha_fin = DateEntry(main_frame, width=27, background='darkblue', foreground='white', 
+        self.date_fecha_fin = DateEntry(main_frame, background='darkblue', foreground='white', 
                                        borderwidth=2, date_pattern='dd/mm/yyyy', font=('Segoe UI', 10))
-        self.date_fecha_fin.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 0))
+        self.date_fecha_fin.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 10))
         
-        # Salario
+        # Salario responsive
         row += 1
         tk.Label(main_frame, text="Salario:", font=('Segoe UI', 10, 'bold'), 
                 bg='#f8f9fa').grid(row=row, column=0, sticky=tk.W, pady=5)
-        tk.Entry(main_frame, textvariable=self.salario_var, font=('Segoe UI', 10), 
-                width=30).grid(row=row, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 0))
+        tk.Entry(main_frame, textvariable=self.salario_var, font=('Segoe UI', 10)).grid(row=row, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 10))
         
-        # Estado
+        # Estado responsive
         row += 1
         tk.Label(main_frame, text="Estado:", font=('Segoe UI', 10, 'bold'), 
                 bg='#f8f9fa').grid(row=row, column=0, sticky=tk.W, pady=5)
         self.estado_combo = ttk.Combobox(main_frame, textvariable=self.estado_var, 
-                                        font=('Segoe UI', 10), width=27, state="readonly")
+                                        font=('Segoe UI', 10), state="readonly")
         self.estado_combo['values'] = ["borrador", "activo", "finalizado", "cancelado"]
-        self.estado_combo.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 0))
+        self.estado_combo.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 10))
         
-        # Botones
+        # Botones responsive
         row += 2
         btn_frame = tk.Frame(main_frame, bg='#f8f9fa')
-        btn_frame.grid(row=row, column=0, columnspan=2, pady=20)
+        btn_frame.grid(row=row, column=0, columnspan=2, pady=20, sticky=(tk.W, tk.E))
+        btn_frame.grid_columnconfigure(0, weight=1)
+        btn_frame.grid_columnconfigure(1, weight=1)
         
         tk.Button(btn_frame, text="💾 Guardar", command=self.guardar_contrato,
                  bg="#27ae60", fg="white", font=('Segoe UI', 12, 'bold'),
-                 relief='flat', bd=0, padx=20, pady=10, cursor='hand2').pack(side=tk.LEFT, padx=5)
+                 relief='flat', bd=0, padx=15, pady=10, cursor='hand2').grid(row=0, column=0, padx=5, sticky=(tk.W, tk.E))
         
         tk.Button(btn_frame, text="❌ Cancelar", command=self.window.destroy,
                  bg="#e74c3c", fg="white", font=('Segoe UI', 12, 'bold'),
-                 relief='flat', bd=0, padx=20, pady=10, cursor='hand2').pack(side=tk.LEFT, padx=5)
+                 relief='flat', bd=0, padx=15, pady=10, cursor='hand2').grid(row=0, column=1, padx=5, sticky=(tk.W, tk.E))
         
         # Configurar grid
         main_frame.columnconfigure(1, weight=1)
@@ -759,29 +797,50 @@ class DetallesContratoWindow:
         self.contrato = contrato
         self.db = get_db()
         
+        # Crear ventana responsive
         self.window = tk.Toplevel(parent)
         self.window.title(f"Detalles del Contrato - {contrato.numero_contrato or 'Sin número'}")
-        self.window.geometry("700x600")
         self.window.configure(bg='#f8f9fa')
         
-        self.center_window()
+        # Configurar ventana responsive
+        self.window.resizable(True, True)
+        self.window.minsize(600, 500)
+        
+        # Configurar tamaño inicial responsive
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+        
+        # Calcular tamaño inicial (55% de la pantalla)
+        window_width = min(700, int(screen_width * 0.55))
+        window_height = min(600, int(screen_height * 0.55))
+        
+        # Centrar ventana
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        
+        self.window.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        
+        # Configurar expansión de grid
+        self.window.grid_rowconfigure(0, weight=1)
+        self.window.grid_columnconfigure(0, weight=1)
+        
         self.window.transient(parent)
         
         self.create_widgets()
         self.cargar_detalles()
     
-    def center_window(self):
-        self.window.update_idletasks()
-        x = (self.window.winfo_screenwidth() // 2) - (700 // 2)
-        y = (self.window.winfo_screenheight() // 2) - (600 // 2)
-        self.window.geometry(f"700x600+{x}+{y}")
+
     
     def create_widgets(self):
-        # Frame principal
+        # Frame principal responsive
         main_frame = ttk.Frame(self.window, padding="20")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        # Título
+        # Configurar expansión del frame principal
+        main_frame.grid_rowconfigure(1, weight=1)  # El frame de detalles se expandirá
+        main_frame.grid_columnconfigure(0, weight=1)
+        
+        # Título responsive
         title = tk.Label(main_frame, text="📋 Detalles del Contrato", 
                         font=('Segoe UI', 16, 'bold'), bg='#f8f9fa', fg='#2c3e50')
         title.grid(row=0, column=0, columnspan=2, pady=(0, 20))
@@ -791,10 +850,14 @@ class DetallesContratoWindow:
                                            font=('Segoe UI', 12, 'bold'), bg='#f8f9fa')
         self.detalles_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 20))
         
-        # Botón cerrar
-        tk.Button(main_frame, text="❌ Cerrar", command=self.window.destroy,
+        # Botón cerrar responsive
+        btn_frame = tk.Frame(main_frame, bg='#f8f9fa')
+        btn_frame.grid(row=2, column=0, columnspan=2, pady=10, sticky=(tk.W, tk.E))
+        btn_frame.grid_columnconfigure(0, weight=1)
+        
+        tk.Button(btn_frame, text="❌ Cerrar", command=self.window.destroy,
                  bg="#e74c3c", fg="white", font=('Segoe UI', 12, 'bold'),
-                 relief='flat', bd=0, padx=20, pady=10, cursor='hand2').grid(row=2, column=0, columnspan=2, pady=10)
+                 relief='flat', bd=0, padx=15, pady=10, cursor='hand2').grid(row=0, column=0, sticky=(tk.W, tk.E))
         
         # Configurar grid
         main_frame.columnconfigure(0, weight=1)

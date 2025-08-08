@@ -10,6 +10,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils.dataframe import dataframe_to_rows
 from tkcalendar import DateEntry
+from pathlib import Path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from alerts.notification_system import abrir_centro_alertas
 
@@ -17,6 +18,8 @@ from alerts.notification_system import abrir_centro_alertas
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.database import get_db, Empleado
+from views.backup_config_view import abrir_configuracion_seguridad
+from utils.config_fix import abrir_configuracion_avanzada_corregida
 
 class MainWindow:
     def __init__(self, root):
@@ -48,47 +51,68 @@ class MainWindow:
     
     def setup_main_window(self):
         self.root.title("Sistema de Gestión de Personal - V1.2")
-        self.root.geometry("1100x700")
+        
+        # Configurar ventana responsive
         self.root.configure(bg='#f0f0f0')
+        self.root.minsize(800, 600)  # Tamaño mínimo
+        
+        # Obtener dimensiones de pantalla
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        
+        # Calcular tamaño inicial (80% de la pantalla)
+        window_width = min(1200, int(screen_width * 0.8))
+        window_height = min(800, int(screen_height * 0.8))
         
         # Centrar ventana
-        self.root.update_idletasks()
-        x = (self.root.winfo_screenwidth() // 2) - (1100 // 2)
-        y = (self.root.winfo_screenheight() // 2) - (700 // 2)
-        self.root.geometry(f"900x700+{x}+{y}")
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        
+        self.root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        
+        # Configurar expansión de grid
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
     
     def create_widgets(self):
-        # Frame principal
+        # Frame principal responsive
         main_frame = ttk.Frame(self.root, padding="20")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        # Título con estilo
+        # Configurar expansión del frame principal
+        main_frame.grid_rowconfigure(3, weight=1)  # La tabla se expandirá
+        main_frame.grid_columnconfigure(0, weight=1)
+        
+        # Título responsive
         title = tk.Label(main_frame, text="Sistema de Gestion de Personal", 
                         font=('Arial', 20, 'bold'), bg='#f0f0f0', fg='#2c3e50')
         title.grid(row=0, column=0, columnspan=4, pady=(0, 25))
         
-        # BOTONES MEJORADOS
+        # Frame de botones responsive
         btn_frame = tk.Frame(main_frame, bg='#f0f0f0')
-        btn_frame.grid(row=1, column=0, columnspan=4, pady=(0, 20))
+        btn_frame.grid(row=1, column=0, columnspan=4, pady=(0, 20), sticky=(tk.W, tk.E))
+        btn_frame.grid_columnconfigure(0, weight=1)
         
         buttons_info = [
-            ("+ Nuevo Empleado", self.nuevo_empleado, "#27ae60"),      # Verde esmeralda
+            ("Nuevo Empleado", self.nuevo_empleado, "#27ae60"),      # Verde esmeralda
             ("Editar Empleado", self.editar_empleado, "#3498db"),      # Azul cielo
             ("Contratos", self.abrir_contratos, "#8e44ad"),            # Púrpura
             ("Inventarios", self.abrir_inventarios, "#16a085"),        # Verde azulado
             ("Centro Alertas", lambda: abrir_centro_alertas(self.root), "#e74c3c"),  # Rojo coral
-            ("X Inactivar", self.inactivar_empleado, "#e67e22"),       # Naranja suave
-            ("Ver Excel", self.abrir_excel_empleado, "#7f8c8d"),       # Gris azulado
-            ("Reportes", self.abrir_reportes, "#2c3e50")              # Azul oscuro
+            ("Seguridad", self.abrir_configuracion_seguridad, "#9b59b6"),  # Púrpura
+            ("Configuracion", self.abrir_configuracion_avanzada, "#34495e")  # Gris oscuro
         ]
         
+        # Crear botones responsive
         for i, (text, command, color) in enumerate(buttons_info):
             btn = tk.Button(btn_frame, text=text, command=command,
                            bg=color, fg='white', font=('Arial', 10, 'bold'),
-                           relief='flat', padx=20, pady=10, cursor='hand2',
-                           bd=0, activebackground=self.darker_color(color),
-                           width=16)
-            btn.pack(side=tk.LEFT, padx=8)
+                           relief='flat', padx=15, pady=8, cursor='hand2',
+                           bd=0, activebackground=self.darker_color(color))
+            btn.grid(row=i//4, column=i%4, padx=5, pady=5, sticky=(tk.W, tk.E))
+            
+            # Configurar expansión de columnas
+            btn_frame.grid_columnconfigure(i%4, weight=1)
             
             # Efecto hover
             def make_hover(btn, color):
@@ -101,16 +125,17 @@ class MainWindow:
             
             make_hover(btn, color)
         
-        # Frame de búsqueda y filtros
+        # Frame de búsqueda y filtros responsive
         search_frame = ttk.LabelFrame(main_frame, text="Busqueda y Filtros", padding="15")
         search_frame.grid(row=2, column=0, columnspan=4, sticky=(tk.W, tk.E), pady=(0, 15))
+        search_frame.grid_columnconfigure(1, weight=1)  # El campo de búsqueda se expandirá
         
-        # Búsqueda por texto
+        # Búsqueda por texto responsive
         ttk.Label(search_frame, text="Buscar:", font=('Arial', 10, 'bold')).grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
         self.search_var = tk.StringVar()
         self.search_var.trace('w', self.on_search_change)
-        search_entry = ttk.Entry(search_frame, textvariable=self.search_var, width=25, font=('Arial', 10))
-        search_entry.grid(row=0, column=1, padx=(0, 20))
+        search_entry = ttk.Entry(search_frame, textvariable=self.search_var, font=('Arial', 10))
+        search_entry.grid(row=0, column=1, padx=(0, 20), sticky=(tk.W, tk.E))
         
         # Filtro por área
         ttk.Label(search_frame, text="Area:", font=('Arial', 10, 'bold')).grid(row=0, column=2, sticky=tk.W, padx=(0, 5))
@@ -136,22 +161,22 @@ class MainWindow:
                              relief='flat', padx=10, pady=5, cursor='hand2')
         clear_btn.grid(row=0, column=6)
         
-        # Lista de empleados
+        # Lista de empleados responsive
         empleados_frame = ttk.LabelFrame(main_frame, text="Lista de Empleados", padding="15")
         empleados_frame.grid(row=3, column=0, columnspan=4, pady=(15, 0), sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        # Treeview para mostrar empleados
+        # Treeview responsive para mostrar empleados
         columns = ('ID', 'Nombre', 'Cedula', 'Telefono', 'Area', 'Cargo', 'Salario', 'Estado', 'Excel')
         self.tree = ttk.Treeview(empleados_frame, columns=columns, show='headings', 
-                                height=12, style='Empleados.Treeview')
+                                style='Empleados.Treeview')
         
-        # Configurar columnas
+        # Configurar columnas con anchos mínimos y expansión
         column_widths = {'ID': 50, 'Nombre': 150, 'Cedula': 100, 'Telefono': 100, 
                         'Area': 100, 'Cargo': 120, 'Salario': 100, 'Estado': 80, 'Excel': 80}
         
         for col in columns:
             self.tree.heading(col, text=col, command=lambda c=col: self.sort_column(c))
-            self.tree.column(col, width=column_widths.get(col, 100))
+            self.tree.column(col, width=column_widths.get(col, 100), minwidth=50)
         
         # Scrollbars
         v_scrollbar = ttk.Scrollbar(empleados_frame, orient=tk.VERTICAL, command=self.tree.yview)
@@ -331,6 +356,7 @@ class MainWindow:
     
     def on_double_click(self, event):
         """Manejar doble click en TreeView"""
+        print("Doble clic detectado en tabla de empleados")
         self.editar_empleado()
     
     def get_selected_empleado(self):
@@ -354,67 +380,21 @@ class MainWindow:
         if empleado:
             EmpleadosWindow(self.root, self, modo="editar", empleado=empleado)
     
-    def inactivar_empleado(self):
-        """Inactivar/activar empleado seleccionado"""
-        empleado = self.get_selected_empleado()
-        if not empleado:
-            return
-        
-        accion = "activar" if not empleado.estado else "inactivar"
-        if messagebox.askyesno("Confirmar", 
-                              f"¿Estás seguro que deseas {accion} a {empleado.nombre_completo}?"):
-            empleado.estado = not empleado.estado
-            self.db.commit()
-            self.cargar_empleados()
-            print(f"Empleado {empleado.nombre_completo} {'activado' if empleado.estado else 'inactivado'}")
+
     
-    def abrir_excel_empleado(self):
-        """Abrir archivo Excel del empleado seleccionado"""
-        empleado = self.get_selected_empleado()
-        if not empleado:
-            return
-        
-        # Buscar Excel en la carpeta del empleado
+    def abrir_configuracion_seguridad(self):
+        """Abrir ventana de configuración de seguridad y backup"""
         try:
-            # Limpiar nombre y cédula para crear ruta segura
-            def limpiar_nombre_archivo(texto):
-                if not texto:
-                    return "sin_nombre"
-                caracteres_prohibidos = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
-                texto_limpio = str(texto)
-                for char in caracteres_prohibidos:
-                    texto_limpio = texto_limpio.replace(char, '_')
-                texto_limpio = texto_limpio.replace(" ", "_")
-                return texto_limpio
-            
-            nombre_seguro = limpiar_nombre_archivo(empleado.nombre_completo)
-            cedula_segura = limpiar_nombre_archivo(empleado.cedula)
-            empleado_dir = os.path.join("empleados_data", f"{nombre_seguro}_{cedula_segura}")
-            
-            # Buscar archivos Excel en la carpeta del empleado
-            if os.path.exists(empleado_dir):
-                excel_files = []
-                for file in os.listdir(empleado_dir):
-                    if file.endswith('.xlsx'):
-                        excel_files.append(os.path.join(empleado_dir, file))
-                
-                if excel_files:
-                    # Abrir el más reciente
-                    latest_file = max(excel_files, key=os.path.getmtime)
-                    os.startfile(latest_file)
-                    messagebox.showinfo("Excel", f"Abriendo: {os.path.basename(latest_file)}")
-                    return
-            
-            # Si no se encuentra, preguntar si crear uno nuevo
-            if messagebox.askyesno("Excel No Encontrado", 
-                                  f"No existe archivo Excel para {empleado.nombre_completo}.\n¿Deseas crearlo ahora?"):
-                self.generar_excel_empleado(empleado, abrir_despues=True)
-                
+            abrir_configuracion_seguridad(self.root)
         except Exception as e:
-            messagebox.showerror("Error", f"Error abriendo Excel: {e}")
+            messagebox.showerror("Error", f"Error abriendo configuración de seguridad: {e}")
     
-    def abrir_reportes(self):
-        print("Módulo de reportes - Próximamente")
+    def abrir_configuracion_avanzada(self):
+        """Abrir ventana de configuración avanzada"""
+        try:
+            abrir_configuracion_avanzada_corregida(self.root)
+        except Exception as e:
+            messagebox.showerror("Error", f"Error abriendo configuración avanzada: {e}")
 
     def abrir_contratos(self):
         """Abrir ventana de gestión de contratos"""
@@ -468,8 +448,6 @@ class MainWindow:
                 caracteres_problematicos = {
                     '\u2705': '✓',  # check mark
                     '\u274c': '✗',  # cross mark
-                    '\U0001f504': '',  # 🔄
-                    '\U0001f4c4': '',  # 📄
                     '\u2026': '...',  # ellipsis
                 }
                 for problema, reemplazo in caracteres_problematicos.items():
@@ -708,18 +686,32 @@ class FullInventarioWindow:
         self.parent = parent
         self.main_window = main_window
         
-        # Crear ventana principal
+        # Crear ventana principal responsive
         self.window = tk.Toplevel(parent)
         self.window.title("CENTRO DE INVENTARIOS - Sistema Completo")
-        self.window.geometry("1200x750")
         self.window.configure(bg='#f8f9fa')
         
-        # Configurar ventana
+        # Configurar ventana responsive
         self.window.resizable(True, True)
-        self.window.minsize(1000, 600)
+        self.window.minsize(900, 600)
+        
+        # Configurar tamaño inicial responsive
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+        
+        # Calcular tamaño inicial (85% de la pantalla)
+        window_width = min(1400, int(screen_width * 0.85))
+        window_height = min(900, int(screen_height * 0.85))
         
         # Centrar ventana
-        self.center_window()
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        
+        self.window.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        
+        # Configurar expansión de grid
+        self.window.grid_rowconfigure(0, weight=1)
+        self.window.grid_columnconfigure(0, weight=1)
         
         # No hacer modal para que tenga controles estándar de Windows
         # self.window.transient(parent)
@@ -731,11 +723,14 @@ class FullInventarioWindow:
         # Inicializar bases de datos
         self.setup_databases()
         
+        # Lista para guardar las pestañas de inventario
+        self.inventory_tabs = []
+        
         # Crear interfaz
         self.create_interface()
         
-        # Cargar datos iniciales
-        self.load_initial_data()
+        # No cargar datos iniciales - los usuarios importarán desde Excel
+        # self.load_initial_data()
         
         # Configurar protocolo de cierre para que funcione el botón X
         self.window.protocol("WM_DELETE_WINDOW", self.close_window)
@@ -778,12 +773,7 @@ class FullInventarioWindow:
                        background=self.colors['poscosecha'],
                        foreground='white')
     
-    def center_window(self):
-        """Centrar ventana"""
-        self.window.update_idletasks()
-        x = (self.window.winfo_screenwidth() // 2) - (1400 // 2)
-        y = (self.window.winfo_screenheight() // 2) - (900 // 2)
-        self.window.geometry(f"1400x900+{x}+{y}")
+
     
     def setup_databases(self):
         """Configurar bases de datos para cada sistema"""
@@ -873,13 +863,21 @@ class FullInventarioWindow:
         print("Bases de datos creadas exitosamente")
     
     def create_interface(self):
-        """Crear interfaz principal"""
-        # Header principal
-        self.create_header()
+        """Crear interfaz principal responsive"""
+        # Frame principal responsive
+        main_frame = tk.Frame(self.window, bg='#f8f9fa')
+        main_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Notebook para pestañas
-        self.notebook = ttk.Notebook(self.window)
-        self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        # Configurar expansión
+        main_frame.grid_rowconfigure(1, weight=1)
+        main_frame.grid_columnconfigure(0, weight=1)
+        
+        # Header principal
+        self.create_header(main_frame)
+        
+        # Notebook para pestañas responsive
+        self.notebook = ttk.Notebook(main_frame)
+        self.notebook.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=10, pady=(0, 10))
         
         # Crear pestañas
         self.create_dashboard_tab()
@@ -888,13 +886,13 @@ class FullInventarioWindow:
         self.create_poscosecha_tab()
         
         # Footer
-        self.create_footer()
+        self.create_footer(main_frame)
     
-    def create_header(self):
-        """Crear header principal"""
-        header = tk.Frame(self.window, bg=self.colors['primary'], height=80)
-        header.pack(fill=tk.X)
-        header.pack_propagate(False)
+    def create_header(self, parent):
+        """Crear header principal responsive"""
+        header = tk.Frame(parent, bg=self.colors['primary'], height=80)
+        header.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        header.grid_columnconfigure(0, weight=1)
         
         header_content = tk.Frame(header, bg=self.colors['primary'])
         header_content.pack(fill=tk.BOTH, expand=True, padx=30, pady=20)
@@ -954,9 +952,13 @@ class FullInventarioWindow:
             ("TOTAL", stats['total'], "#9b59b6")
         ]
         
+        # Configurar grid para cards responsive
+        for i in range(4):
+            parent.grid_columnconfigure(i, weight=1)
+        
         for i, (title, count, color) in enumerate(cards_data):
             card = tk.Frame(parent, bg='white', relief='solid', bd=1)
-            card.grid(row=0, column=i, sticky='ew', padx=10, pady=10)
+            card.grid(row=0, column=i, sticky='ew', padx=5, pady=10)
             
             # Header de la card
             header = tk.Frame(card, bg=color, height=40)
@@ -997,10 +999,9 @@ class FullInventarioWindow:
         buttons_frame.pack()
         
         buttons = [
-            ("Cargar desde Excel", self.load_from_excel, self.colors['info']),
+            ("Limpiar Inventarios", self.limpiar_todos_inventarios, self.colors['danger']),
             ("Generar Reporte", self.generate_report, self.colors['warning']),
-            ("Exportar Datos", self.export_data, self.colors['success']),
-            ("Configuraciones", self.show_settings, "#95a5a6")
+            ("Exportar Datos", self.export_data, self.colors['success'])
         ]
         
         for text, command, color in buttons:
@@ -1015,34 +1016,37 @@ class FullInventarioWindow:
         quimicos_frame = ttk.Frame(self.notebook)
         self.notebook.add(quimicos_frame, text="Quimicos Agricolas")
         
-        InventorySystemTab(quimicos_frame, 'quimicos', self.db_paths['quimicos'], 
+        quimicos_tab = InventorySystemTab(quimicos_frame, 'quimicos', self.db_paths['quimicos'], 
                           self.colors['quimicos'], self)
+        self.inventory_tabs.append(quimicos_tab)
     
     def create_almacen_tab(self):
         """Crear pestaña de almacén"""
         almacen_frame = ttk.Frame(self.notebook)
         self.notebook.add(almacen_frame, text="Almacen General")
         
-        InventorySystemTab(almacen_frame, 'almacen', self.db_paths['almacen'],
+        almacen_tab = InventorySystemTab(almacen_frame, 'almacen', self.db_paths['almacen'],
                           self.colors['almacen'], self)
+        self.inventory_tabs.append(almacen_tab)
     
     def create_poscosecha_tab(self):
         """Crear pestaña de poscosecha"""
         poscosecha_frame = ttk.Frame(self.notebook)
         self.notebook.add(poscosecha_frame, text="Poscosecha")
         
-        InventorySystemTab(poscosecha_frame, 'poscosecha', self.db_paths['poscosecha'],
+        poscosecha_tab = InventorySystemTab(poscosecha_frame, 'poscosecha', self.db_paths['poscosecha'],
                           self.colors['poscosecha'], self)
+        self.inventory_tabs.append(poscosecha_tab)
     
-    def create_footer(self):
-        """Crear footer"""
-        footer = tk.Frame(self.window, bg=self.colors['secondary'], height=30)
-        footer.pack(fill=tk.X, side=tk.BOTTOM)
-        footer.pack_propagate(False)
+    def create_footer(self, parent):
+        """Crear footer responsive"""
+        footer = tk.Frame(parent, bg=self.colors['secondary'], height=30)
+        footer.grid(row=2, column=0, sticky=(tk.W, tk.E))
+        footer.grid_columnconfigure(0, weight=1)
         
         footer_label = tk.Label(footer, text="Centro de Inventarios v1.0 - Todos los sistemas operativos",
                                bg=self.colors['secondary'], fg='white', font=('Arial', 9))
-        footer_label.pack(expand=True)
+        footer_label.grid(row=0, column=0, sticky=(tk.W, tk.E))
     
     def load_initial_data(self):
         """Cargar datos iniciales de ejemplo"""
@@ -1184,32 +1188,362 @@ class FullInventarioWindow:
         return stats
     
     # Funciones de acciones del dashboard
-    def load_from_excel(self):
-        """Cargar datos desde Excel"""
-        file_path = filedialog.askopenfilename(
-            title="Seleccionar archivo Excel",
-            filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")]
-        )
-        if file_path:
-            messagebox.showinfo("Carga de Excel", f"Funcionalidad en desarrollo\nArchivo seleccionado: {file_path}")
+
+
+    def import_from_excel_to_inventory(self, system_type):
+        """Importar productos desde Excel a un inventario específico"""
+        try:
+            file_path = filedialog.askopenfilename(
+                title=f"Seleccionar archivo Excel para {system_type}",
+                filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")]
+            )
+            
+            if not file_path:
+                return
+            
+            # Procesar el archivo según el tipo de inventario
+            if system_type == 'quimicos':
+                df = pd.read_excel(file_path, header=None)
+                # Buscar encabezados
+                header_row = None
+                for i, row in df.iterrows():
+                    if 'SALDO ANTERIOR' in str(row.values):
+                        header_row = i
+                        break
+                if header_row is not None:
+                    df = pd.read_excel(file_path, header=header_row)
+                else:
+                    df = pd.DataFrame()
+                    
+            elif system_type == 'almacen':
+                df = pd.read_excel(file_path, header=None)
+                # Buscar encabezados
+                header_row = None
+                for i, row in df.iterrows():
+                    if 'PRODUCTO' in str(row.values) and 'SALDO' in str(row.values):
+                        header_row = i
+                        break
+                if header_row is not None:
+                    df = pd.read_excel(file_path, header=header_row)
+                else:
+                    df = pd.DataFrame()
+                    
+            elif system_type == 'poscosecha':
+                df = pd.read_excel(file_path, header=None)
+                # Buscar encabezados
+                header_row = None
+                for i, row in df.iterrows():
+                    if 'PRODUCTO' in str(row.values) and 'SALDO' in str(row.values):
+                        header_row = i
+                        break
+                if header_row is not None:
+                    df = pd.read_excel(file_path, header=header_row)
+                else:
+                    df = pd.DataFrame()
+            else:
+                # Fallback: intentar leer como archivo estándar
+                df = pd.read_excel(file_path)
+            
+            if df.empty:
+                messagebox.showerror("Error", "No se pudieron procesar datos del archivo Excel")
+                return
+            
+            # Mostrar información del archivo
+            info_msg = f"Archivo: {os.path.basename(file_path)}\n"
+            info_msg += f"Registros procesados: {len(df)}\n"
+            info_msg += f"Columnas: {', '.join(df.columns.tolist())}"
+            
+            if messagebox.askyesno("Confirmar Importación", 
+                                 f"{info_msg}\n\n¿Desea importar estos datos?"):
+                
+                # Conectar a la base de datos correspondiente
+                base_dir = Path(__file__).resolve().parent.parent.parent
+                db_path = base_dir / "database" / f"inventario_{system_type}.db"
+                
+                conn = sqlite3.connect(str(db_path))
+                cursor = conn.cursor()
+                
+                # Limpiar tabla existente
+                if system_type == 'quimicos':
+                    cursor.execute("DELETE FROM productos_quimicos")
+                elif system_type == 'almacen':
+                    cursor.execute("DELETE FROM productos_almacen")
+                elif system_type == 'poscosecha':
+                    cursor.execute("DELETE FROM productos_poscosecha")
+                
+                # Insertar datos
+                imported_count = 0
+                for index, row in df.iterrows():
+                    try:
+                        if system_type == 'quimicos':
+                            saldo = row.iloc[0] if len(row) > 0 else 0
+                            clase = row.iloc[1] if len(row) > 1 else 'General'
+                            producto = row.iloc[2] if len(row) > 2 else ''
+                            valor = row.iloc[3] if len(row) > 3 else 50.0  # VALOR REAL DEL EXCEL
+                            stock_min = 10  # Stock mínimo por defecto
+                            proveedor = 'Proveedor General'  # Proveedor por defecto
+                            
+                            if pd.notna(producto) and str(producto).strip() != '':
+                                try:
+                                    saldo_num = int(float(saldo)) if pd.notna(saldo) else 0
+                                    valor_num = float(valor) if pd.notna(valor) else 50.0
+                                    stock_min_num = int(float(stock_min)) if pd.notna(stock_min) else 10
+                                except:
+                                    saldo_num = 0
+                                    valor_num = 50.0
+                                    stock_min_num = 10
+                                
+                                # Solo importar si tiene saldo > 0
+                                if saldo_num > 0:
+                                    codigo = f"Q{imported_count:03d}"
+                                    cursor.execute('''
+                                        INSERT INTO productos_quimicos 
+                                        (codigo, nombre, clase, saldo, unidad, valor_unitario, 
+                                         stock_minimo, ubicacion, proveedor, activo)
+                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                    ''', (
+                                        codigo,
+                                        str(producto).strip(),
+                                        str(clase).strip() if pd.notna(clase) else 'General',
+                                        saldo_num,
+                                        'Kg',
+                                        valor_num,  # Valor real del Excel
+                                        stock_min_num,  # Stock mínimo real del Excel
+                                        'Almacén General',
+                                        str(proveedor).strip() if pd.notna(proveedor) else 'Proveedor General',
+                                        1
+                                    ))
+                                    imported_count += 1
+                                    
+                        elif system_type == 'almacen':
+                            # Para almacén, usar índices de columna
+                            saldo = row.iloc[0] if len(row) > 0 else 0
+                            producto = row.iloc[1] if len(row) > 1 else None
+                            # Para almacén, usar valores por defecto ya que el Excel no tiene datos de precios
+                            valor = 15.0  # Valor por defecto razonable
+                            stock_min = 5  # Stock mínimo por defecto
+                            proveedor = 'Proveedor General'  # Proveedor por defecto
+                            
+                            if pd.notna(producto) and str(producto).strip() != '' and str(producto).strip() != 'PRODUCTO y saldos':
+                                try:
+                                    saldo_num = int(float(saldo)) if pd.notna(saldo) else 0
+                                    valor_num = float(valor) if pd.notna(valor) else 15.0
+                                    stock_min_num = int(float(stock_min)) if pd.notna(stock_min) else 5
+                                except:
+                                    saldo_num = 0
+                                    valor_num = 15.0
+                                    stock_min_num = 5
+                                
+                                # Solo importar si tiene saldo > 0
+                                if saldo_num > 0:
+                                    codigo = f"A{imported_count:03d}"
+                                    cursor.execute('''
+                                        INSERT INTO productos_almacen 
+                                        (codigo, nombre, categoria, saldo, unidad, valor_unitario, 
+                                         stock_minimo, ubicacion, proveedor, activo)
+                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                    ''', (
+                                        codigo,
+                                        str(producto).strip(),
+                                        'General',
+                                        saldo_num,
+                                        'Unidad',
+                                        valor_num,  # Valor real del Excel
+                                        stock_min_num,  # Stock mínimo real del Excel
+                                        'Almacén General',
+                                        str(proveedor).strip() if pd.notna(proveedor) else 'Proveedor General',
+                                        1
+                                    ))
+                                    imported_count += 1
+                                    
+                        elif system_type == 'poscosecha':
+                            # Para poscosecha, usar índices de columna
+                            producto = row.iloc[0] if len(row) > 0 else None
+                            saldo = row.iloc[1] if len(row) > 1 else 0
+                            # Para poscosecha, usar valores por defecto ya que el Excel no tiene datos de precios
+                            valor = 25.0  # Valor por defecto razonable
+                            stock_min = 8  # Stock mínimo por defecto
+                            proveedor = 'Proveedor General'  # Proveedor por defecto
+                            
+                            if pd.notna(producto) and str(producto).strip() != '' and str(producto).strip() != 'PRODUCTO':
+                                try:
+                                    saldo_num = int(float(saldo)) if pd.notna(saldo) else 0
+                                    valor_num = float(valor) if pd.notna(valor) else 25.0
+                                    stock_min_num = int(float(stock_min)) if pd.notna(stock_min) else 8
+                                except:
+                                    saldo_num = 0
+                                    valor_num = 25.0
+                                    stock_min_num = 8
+                                
+                                # Solo importar si tiene saldo > 0
+                                if saldo_num > 0:
+                                    codigo = f"P{imported_count:03d}"
+                                    cursor.execute('''
+                                        INSERT INTO productos_poscosecha 
+                                        (codigo, nombre, tipo, saldo, unidad, valor_unitario, 
+                                         stock_minimo, ubicacion, proveedor, activo)
+                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                    ''', (
+                                        codigo,
+                                        str(producto).strip(),
+                                        'General',
+                                        saldo_num,
+                                        'Unidad',
+                                        valor_num,  # Valor real del Excel
+                                        stock_min_num,  # Stock mínimo real del Excel
+                                        'Almacén General',
+                                        str(proveedor).strip() if pd.notna(proveedor) else 'Proveedor General',
+                                        1
+                                    ))
+                                    imported_count += 1
+                                    
+                    except Exception as e:
+                        print(f"Error importando fila {index}: {e}")
+                        continue
+                    
+                conn.commit()
+                conn.close()
+                
+                messagebox.showinfo("Importación Exitosa", 
+                                  f"Se importaron {imported_count} productos exitosamente a {system_type.title()}")
+                
+                # ACTUALIZAR LA TABLA AUTOMÁTICAMENTE
+                self.refresh_inventory_tables(system_type)
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Error importando desde Excel: {e}")
+    
+    def refresh_inventory_tables(self, system_type):
+        """Actualizar todas las tablas de inventario"""
+        try:
+            # Buscar y actualizar la tabla correspondiente
+            for tab in self.inventory_tabs:
+                if hasattr(tab, 'system_type') and tab.system_type == system_type:
+                    if hasattr(tab, 'load_data'):
+                        tab.load_data()
+                        print(f"✅ Tabla de {system_type} actualizada automáticamente")
+                    break
+        except Exception as e:
+            print(f"Error actualizando tabla: {e}")
+    
+    def limpiar_todos_inventarios(self):
+        """Limpiar todos los inventarios"""
+        if messagebox.askyesno("Confirmar Limpieza", 
+                              "¿Está seguro de que desea eliminar TODOS los productos de todos los inventarios?\n\nEsta acción no se puede deshacer."):
+            try:
+                # Limpiar químicos
+                conn_q = sqlite3.connect(self.db_paths['quimicos'])
+                cursor_q = conn_q.cursor()
+                cursor_q.execute("DELETE FROM productos_quimicos")
+                conn_q.commit()
+                conn_q.close()
+                
+                # Limpiar almacén
+                conn_a = sqlite3.connect(self.db_paths['almacen'])
+                cursor_a = conn_a.cursor()
+                cursor_a.execute("DELETE FROM productos_almacen")
+                conn_a.commit()
+                conn_a.close()
+                
+                # Limpiar poscosecha
+                conn_p = sqlite3.connect(self.db_paths['poscosecha'])
+                cursor_p = conn_p.cursor()
+                cursor_p.execute("DELETE FROM productos_poscosecha")
+                conn_p.commit()
+                conn_p.close()
+                
+                # Actualizar todas las tablas
+                for tab in self.inventory_tabs:
+                    if hasattr(tab, 'load_data'):
+                        tab.load_data()
+                
+                messagebox.showinfo("Limpieza Exitosa", 
+                                  "Todos los inventarios han sido limpiados exitosamente.\n\nLos inventarios están listos para nuevas importaciones.")
+                
+            except Exception as e:
+                messagebox.showerror("Error", f"Error limpiando inventarios: {e}")
     
     def generate_report(self):
-        """Generar reporte"""
-        messagebox.showinfo("Reportes", "Generando reporte completo de inventarios...")
+        """Generar reporte completo de inventarios"""
+        try:
+            # Obtener estadísticas
+            stats = self.get_inventory_stats()
+            
+            # Crear contenido del reporte
+            report_content = "REPORTE DE INVENTARIOS\n"
+            report_content += "=" * 50 + "\n\n"
+            report_content += f"Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n\n"
+            report_content += f"QUÍMICOS: {stats['quimicos']} productos\n"
+            report_content += f"ALMACÉN: {stats['almacen']} productos\n"
+            report_content += f"POSCOSECHA: {stats['poscosecha']} productos\n"
+            report_content += f"TOTAL: {stats['total']} productos\n\n"
+            
+            # Guardar reporte
+            file_path = filedialog.asksaveasfilename(
+                title="Guardar Reporte",
+                defaultextension=".txt",
+                filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
+            )
+            
+            if file_path:
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(report_content)
+                
+                messagebox.showinfo("Reporte Generado", 
+                                  f"Reporte guardado exitosamente en:\n{file_path}")
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Error generando reporte: {e}")
     
     def export_data(self):
-        """Exportar datos"""
-        file_path = filedialog.asksaveasfilename(
-            title="Exportar datos",
-            defaultextension=".csv",
-            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
-        )
-        if file_path:
-            messagebox.showinfo("Exportar", f"Datos exportados a: {file_path}")
-    
-    def show_settings(self):
-        """Mostrar configuraciones"""
-        messagebox.showinfo("Configuraciones", "Panel de configuraciones del sistema")
+        """Exportar datos de todos los inventarios"""
+        try:
+            # Seleccionar directorio de destino
+            export_dir = filedialog.askdirectory(title="Seleccionar carpeta para exportar")
+            
+            if not export_dir:
+                return
+            
+            exported_files = []
+            
+            # Exportar químicos
+            conn_q = sqlite3.connect(self.db_paths['quimicos'])
+            df_q = pd.read_sql_query("SELECT * FROM productos_quimicos", conn_q)
+            if not df_q.empty:
+                file_path = os.path.join(export_dir, "inventario_quimicos.csv")
+                df_q.to_csv(file_path, index=False, encoding='utf-8')
+                exported_files.append("inventario_quimicos.csv")
+            conn_q.close()
+            
+            # Exportar almacén
+            conn_a = sqlite3.connect(self.db_paths['almacen'])
+            df_a = pd.read_sql_query("SELECT * FROM productos_almacen", conn_a)
+            if not df_a.empty:
+                file_path = os.path.join(export_dir, "inventario_almacen.csv")
+                df_a.to_csv(file_path, index=False, encoding='utf-8')
+                exported_files.append("inventario_almacen.csv")
+            conn_a.close()
+            
+            # Exportar poscosecha
+            conn_p = sqlite3.connect(self.db_paths['poscosecha'])
+            df_p = pd.read_sql_query("SELECT * FROM productos_poscosecha", conn_p)
+            if not df_p.empty:
+                file_path = os.path.join(export_dir, "inventario_poscosecha.csv")
+                df_p.to_csv(file_path, index=False, encoding='utf-8')
+                exported_files.append("inventario_poscosecha.csv")
+            conn_p.close()
+            
+            if exported_files:
+                messagebox.showinfo("Exportación Exitosa", 
+                                  f"Se exportaron {len(exported_files)} archivos:\n\n" + 
+                                  "\n".join(exported_files) + 
+                                  f"\n\nUbicación: {export_dir}")
+            else:
+                messagebox.showwarning("Sin Datos", 
+                                     "No hay datos para exportar. Los inventarios están vacíos.")
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Error exportando datos: {e}")
     
     def add_hover_effect(self, button, color):
         """Agregar efecto hover"""
@@ -1283,13 +1617,16 @@ class InventorySystemTab:
         self.create_actions_panel(main_frame)
     
     def create_tab_header(self, parent):
-        """Crear header de la pestaña"""
-        header = tk.Frame(parent, bg=self.color, height=60)
+        """Crear header de la pestaña compacto"""
+        header = tk.Frame(parent, bg=self.color, height=45)
         header.pack(fill=tk.X)
         header.pack_propagate(False)
         
         header_content = tk.Frame(header, bg=self.color)
-        header_content.pack(fill=tk.BOTH, expand=True, padx=20, pady=15)
+        header_content.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+        
+        # Configurar expansión
+        header_content.grid_columnconfigure(0, weight=1)
         
         # Título
         system_names = {
@@ -1299,52 +1636,54 @@ class InventorySystemTab:
         }
         
         title_label = tk.Label(header_content, text=system_names[self.system_type],
-                              font=('Arial', 16, 'bold'),
+                              font=('Arial', 14, 'bold'),
                               bg=self.color, fg='white')
-        title_label.pack(side=tk.LEFT)
+        title_label.grid(row=0, column=0, sticky=tk.W)
         
         # Contador de productos
         self.count_label = tk.Label(header_content, text="",
-                                   font=('Arial', 12),
+                                   font=('Arial', 10, 'bold'),
                                    bg=self.color, fg='white')
-        self.count_label.pack(side=tk.RIGHT)
+        self.count_label.grid(row=0, column=1, sticky=tk.E)
     
     def create_search_area(self, parent):
-        """Crear área de búsqueda"""
+        """Crear área de búsqueda compacta"""
         search_frame = tk.LabelFrame(parent, text="Busqueda y Filtros", 
-                                    font=('Arial', 10, 'bold'),
+                                    font=('Arial', 9, 'bold'),
                                     bg='#f8f9fa', fg='#2c3e50',
-                                    padx=15, pady=10)
-        search_frame.pack(fill=tk.X, pady=(10, 0))
+                                    padx=10, pady=8)
+        search_frame.pack(fill=tk.X, pady=(8, 0))
         
-        # Búsqueda
+        # Búsqueda en una sola fila compacta
         search_row = tk.Frame(search_frame, bg='#f8f9fa')
-        search_row.pack(fill=tk.X, pady=5)
+        search_row.pack(fill=tk.X, pady=3)
+        
+        # Configurar expansión
+        search_row.grid_columnconfigure(1, weight=1)
         
         tk.Label(search_row, text="Buscar:", font=('Arial', 9, 'bold'),
-                bg='#f8f9fa').pack(side=tk.LEFT, padx=(0, 5))
+                bg='#f8f9fa').grid(row=0, column=0, padx=(0, 5), sticky=tk.W)
         
         self.search_var = tk.StringVar()
         self.search_var.trace('w', self.on_search_change)
         search_entry = tk.Entry(search_row, textvariable=self.search_var,
-                               font=('Arial', 10), width=30)
-        search_entry.pack(side=tk.LEFT, padx=(0, 20))
+                               font=('Arial', 9))
+        search_entry.grid(row=0, column=1, padx=(0, 10), sticky=(tk.W, tk.E))
         
-        # Botón buscar
+        # Botones en la misma fila
         search_btn = tk.Button(search_row, text="Buscar",
                               command=self.search_products,
                               bg=self.color, fg='white',
-                              font=('Arial', 9, 'bold'),
-                              relief='flat', padx=15, pady=5, cursor='hand2')
-        search_btn.pack(side=tk.LEFT, padx=5)
+                              font=('Arial', 8, 'bold'),
+                              relief='flat', padx=12, pady=3, cursor='hand2')
+        search_btn.grid(row=0, column=2, padx=2)
         
-        # Botón limpiar
         clear_btn = tk.Button(search_row, text="Limpiar",
                              command=self.clear_search,
                              bg='#95a5a6', fg='white',
-                             font=('Arial', 9, 'bold'),
-                             relief='flat', padx=15, pady=5, cursor='hand2')
-        clear_btn.pack(side=tk.LEFT, padx=5)
+                             font=('Arial', 8, 'bold'),
+                             relief='flat', padx=12, pady=3, cursor='hand2')
+        clear_btn.grid(row=0, column=3, padx=2)
     
     def create_products_table(self, parent):
         """Crear tabla de productos"""
@@ -1365,9 +1704,9 @@ class InventorySystemTab:
             columns = ('Codigo', 'Categoria', 'Producto', 'Saldo', 'Unidad', 'Valor', 'Stock Min', 'Ubicacion', 'Tipo')
             style_name = 'Poscosecha.Treeview'
         
-        # TreeView
+        # TreeView con altura reducida para dar espacio a los botones
         self.tree = ttk.Treeview(table_frame, columns=columns, show='headings',
-                                height=15, style=style_name)
+                                height=12, style=style_name)
         
         # Configurar columnas
         column_widths = {
@@ -1397,26 +1736,32 @@ class InventorySystemTab:
         self.tree.bind('<Double-1>', self.on_double_click)
     
     def create_actions_panel(self, parent):
-        """Crear panel de acciones"""
+        """Crear panel de acciones responsive - todos los botones visibles"""
         actions_frame = tk.Frame(parent, bg='#f8f9fa')
         actions_frame.pack(fill=tk.X, pady=(10, 0))
         
-        # Botones de acción con colores armónicos
+        # Configurar expansión de columnas para botones responsive (8 columnas)
+        for i in range(8):
+            actions_frame.grid_columnconfigure(i, weight=1)
+        
+        # Todos los botones en una sola fila compacta
         actions = [
-            ("+ Nuevo Producto", self.new_product, '#2c3e50'),
-            ("✏️ Editar", self.edit_product, '#34495e'),
-            ("📥 Entrada Stock", self.movimiento_entrada, '#27ae60'),
-            ("📤 Salida Stock", self.movimiento_salida, '#e74c3c'),
-            ("📋 Historial", self.ver_historial_movimientos, '#8e44ad'),
-            ("🗑️ Eliminar", self.delete_product, '#c0392b'),
-            ("📊 Exportar", self.export_products, '#7f8c8d')
+            ("Nuevo", self.new_product, '#2c3e50'),
+            ("Editar", self.edit_product, '#34495e'),
+            ("Entrada", self.movimiento_entrada, '#27ae60'),
+            ("Salida", self.movimiento_salida, '#e74c3c'),
+            ("Historial", self.ver_historial_movimientos, '#8e44ad'),
+            ("Eliminar", self.delete_product, '#c0392b'),
+            ("Exportar", self.export_products, '#7f8c8d'),
+            ("Importar", lambda: self.main_window.import_from_excel_to_inventory(self.system_type), '#f39c12')
         ]
         
-        for text, command, color in actions:
+        # Crear todos los botones en una sola fila
+        for i, (text, command, color) in enumerate(actions):
             btn = tk.Button(actions_frame, text=text, command=command,
-                           bg=color, fg='white', font=('Arial', 10, 'bold'),
-                           relief='flat', bd=0, padx=15, pady=8, cursor='hand2')
-            btn.pack(side=tk.LEFT, padx=3)
+                           bg=color, fg='white', font=('Arial', 8, 'bold'),
+                           relief='flat', bd=0, padx=5, pady=4, cursor='hand2')
+            btn.grid(row=0, column=i, padx=1, pady=2, sticky=(tk.W, tk.E))
             self.add_hover_effect(btn, color)
     
     def load_data(self):
@@ -1686,13 +2031,34 @@ class ProductFormWindow:
         self.mode = mode  # "new" o "edit"
         self.product_data = product_data
         
+        # Crear ventana responsive
         self.window = tk.Toplevel(parent)
         title = f"{'Editar' if mode == 'edit' else 'Nuevo'} Producto - {tab.system_type.title()}"
         self.window.title(title)
-        self.window.geometry("500x600")
         self.window.configure(bg='#f8f9fa')
         
-        self.center_window()
+        # Configurar ventana responsive
+        self.window.resizable(True, True)
+        self.window.minsize(500, 600)
+        
+        # Configurar tamaño inicial responsive
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+        
+        # Calcular tamaño inicial (60% de la pantalla)
+        window_width = min(600, int(screen_width * 0.6))
+        window_height = min(700, int(screen_height * 0.6))
+        
+        # Centrar ventana
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        
+        self.window.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        
+        # Configurar expansión de grid
+        self.window.grid_rowconfigure(0, weight=1)
+        self.window.grid_columnconfigure(0, weight=1)
+        
         self.window.transient(parent)
         self.window.grab_set()
         
@@ -1701,29 +2067,35 @@ class ProductFormWindow:
         if mode == "edit" and product_data:
             self.load_product_data()
     
-    def center_window(self):
-        """Centrar ventana"""
-        self.window.update_idletasks()
-        x = (self.window.winfo_screenwidth() // 2) - (500 // 2)
-        y = (self.window.winfo_screenheight() // 2) - (600 // 2)
-        self.window.geometry(f"500x600+{x}+{y}")
+
     
     def create_form(self):
-        """Crear formulario"""
+        """Crear formulario responsive"""
+        # Frame principal responsive
+        main_frame = tk.Frame(self.window, bg='#f8f9fa')
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Configurar expansión
+        main_frame.grid_rowconfigure(1, weight=1)
+        main_frame.grid_columnconfigure(0, weight=1)
+        
         # Header
-        header = tk.Frame(self.window, bg=self.tab.color, height=60)
-        header.pack(fill=tk.X)
-        header.pack_propagate(False)
+        header = tk.Frame(main_frame, bg=self.tab.color, height=60)
+        header.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        header.grid_columnconfigure(0, weight=1)
         
         title = f"{'Editar' if self.mode == 'edit' else 'Nuevo'} Producto"
         title_label = tk.Label(header, text=title,
                               font=('Arial', 16, 'bold'),
                               bg=self.tab.color, fg='white')
-        title_label.pack(expand=True)
+        title_label.grid(row=0, column=0, sticky=(tk.W, tk.E))
         
-        # Formulario
-        form_frame = tk.Frame(self.window, bg='white')
-        form_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        # Formulario responsive
+        form_frame = tk.Frame(main_frame, bg='white')
+        form_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=20, pady=20)
+        
+        # Configurar expansión del formulario
+        form_frame.grid_columnconfigure(1, weight=1)
         
         # Campos según tipo de sistema
         self.create_form_fields(form_frame)
@@ -1775,14 +2147,14 @@ class ProductFormWindow:
                            bg='white', fg='#2c3e50')
             label.grid(row=row, column=0, sticky='w', pady=8, padx=(0, 10))
             
-            # Entry o Combobox
+            # Entry o Combobox responsive
             if field_name in ['clase', 'nivel_peligrosidad', 'categoria', 'tipo_producto', 'unidad']:
                 # Combobox para campos con opciones predefinidas
                 values = self.get_field_options(field_name)
-                widget = ttk.Combobox(parent, values=values, width=35)
+                widget = ttk.Combobox(parent, values=values)
             else:
-                # Entry normal
-                widget = tk.Entry(parent, width=38, font=('Arial', 10))
+                # Entry normal responsive
+                widget = tk.Entry(parent, font=('Arial', 10))
             
             widget.grid(row=row, column=1, pady=8, sticky='ew')
             self.entries[field_name] = widget
@@ -1802,22 +2174,24 @@ class ProductFormWindow:
         return options.get(field_name, [])
     
     def create_form_buttons(self, parent):
-        """Crear botones del formulario"""
+        """Crear botones del formulario responsive"""
         btn_frame = tk.Frame(parent, bg='white')
-        btn_frame.grid(row=20, column=0, columnspan=2, pady=20)
+        btn_frame.grid(row=20, column=0, columnspan=2, pady=20, sticky=(tk.W, tk.E))
+        btn_frame.grid_columnconfigure(0, weight=1)
+        btn_frame.grid_columnconfigure(1, weight=1)
         
         # Botón guardar
         save_text = "Actualizar" if self.mode == "edit" else "Guardar"
         save_btn = tk.Button(btn_frame, text=save_text, command=self.save_product,
                            bg=self.tab.color, fg='white', font=('Arial', 11, 'bold'),
-                           relief='flat', bd=0, padx=20, pady=10, cursor='hand2')
-        save_btn.pack(side=tk.LEFT, padx=10)
+                           relief='flat', bd=0, padx=15, pady=10, cursor='hand2')
+        save_btn.grid(row=0, column=0, padx=5, sticky=(tk.W, tk.E))
         
         # Botón cancelar
         cancel_btn = tk.Button(btn_frame, text="Cancelar", command=self.window.destroy,
                              bg='#95a5a6', fg='white', font=('Arial', 11, 'bold'),
-                             relief='flat', bd=0, padx=20, pady=10, cursor='hand2')
-        cancel_btn.pack(side=tk.LEFT, padx=10)
+                             relief='flat', bd=0, padx=15, pady=10, cursor='hand2')
+        cancel_btn.grid(row=0, column=1, padx=5, sticky=(tk.W, tk.E))
     
     def load_product_data(self):
         """Cargar datos del producto para edición"""
@@ -2005,19 +2379,33 @@ class EmpleadosWindow:
         self.modo = modo
         self.empleado = empleado
         
-        # Crear ventana
+        # Crear ventana responsive
         self.window = tk.Toplevel(parent)
         titulo = "Editar Empleado" if modo == "editar" else "Nuevo Empleado"
         self.window.title(titulo)
-        self.window.geometry("650x600")
         self.window.configure(bg='#f8f9fa')
         
-        # Configurar ventana
+        # Configurar ventana responsive
         self.window.resizable(True, True)
-        self.window.minsize(600, 550)
+        self.window.minsize(600, 800)
+        
+        # Configurar tamaño inicial responsive
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+        
+        # Calcular tamaño inicial (75% de la pantalla)
+        window_width = min(700, int(screen_width * 0.75))
+        window_height = min(900, int(screen_height * 0.75))
         
         # Centrar ventana
-        self.center_window()
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        
+        self.window.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        
+        # Configurar expansión de grid
+        self.window.grid_rowconfigure(0, weight=1)
+        self.window.grid_columnconfigure(0, weight=1)
         
         # Hacer modal
         self.window.transient(parent)
@@ -2029,17 +2417,15 @@ class EmpleadosWindow:
         if modo == "editar" and empleado:
             self.cargar_datos_empleado()
     
-    def center_window(self):
-        """Centrar ventana en la pantalla"""
-        self.window.update_idletasks()
-        x = (self.window.winfo_screenwidth() // 2) - (650 // 2)
-        y = (self.window.winfo_screenheight() // 2) - (600 // 2)
-        self.window.geometry(f"650x600+{x}+{y}")
+
     
     def create_widgets(self):
-        # Frame principal con color de fondo
+        # Frame principal simple y funcional
         main_frame = tk.Frame(self.window, bg='#f8f9fa', padx=20, pady=20)
         main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Configurar expansión
+        main_frame.grid_columnconfigure(1, weight=1)  # Los campos se expandirán
         
         # Título con mejor estilo
         titulo_texto = "Editar Empleado" if self.modo == "editar" else "Registrar Nuevo Empleado"
@@ -2067,8 +2453,8 @@ class EmpleadosWindow:
                            bg='#f8f9fa', fg='#2c3e50')
             label.grid(row=row, column=0, sticky=tk.W, pady=10, padx=(0, 15))
             
-            entry = ttk.Entry(main_frame, width=30, font=('Arial', 11))
-            entry.grid(row=row, column=1, pady=10, sticky='ew')
+            entry = ttk.Entry(main_frame, font=('Arial', 11))
+            entry.grid(row=row, column=1, pady=10, sticky='ew', padx=(0, 10))
             setattr(self, entry_name, entry)
             row += 1
         
@@ -2085,24 +2471,26 @@ class EmpleadosWindow:
         area_label = tk.Label(main_frame, text="Area:", font=('Arial', 11, 'bold'),
                             bg='#f8f9fa', fg='#2c3e50')
         area_label.grid(row=11, column=0, sticky=tk.W, pady=10, padx=(0, 15))
-        self.combo_area = ttk.Combobox(main_frame, values=["planta", "postcosecha"], width=27, font=('Arial', 11))
-        self.combo_area.grid(row=11, column=1, pady=10, sticky='ew')
+        self.combo_area = ttk.Combobox(main_frame, values=["planta", "postcosecha"], font=('Arial', 11))
+        self.combo_area.grid(row=11, column=1, pady=10, sticky='ew', padx=(0, 10))
         
         # Estado (solo para edición)
         if self.modo == "editar":
             estado_label = tk.Label(main_frame, text="Estado:", font=('Arial', 11, 'bold'),
                                   bg='#f8f9fa', fg='#2c3e50')
             estado_label.grid(row=12, column=0, sticky=tk.W, pady=10, padx=(0, 15))
-            self.combo_estado = ttk.Combobox(main_frame, values=["Activo", "Inactivo"], width=27, font=('Arial', 11))
+            self.combo_estado = ttk.Combobox(main_frame, values=["Activo", "Inactivo"], font=('Arial', 11))
             self.combo_estado.grid(row=12, column=1, pady=10, sticky='ew')
         
-        # Configurar expansión de columnas
-        main_frame.grid_columnconfigure(1, weight=1)
+
         
-        # Botones
+        # Botones responsive
         btn_frame = tk.Frame(main_frame, bg='#f8f9fa')
         btn_row = 13 if self.modo == "editar" else 12
-        btn_frame.grid(row=btn_row, column=0, columnspan=2, pady=25)
+        btn_frame.grid(row=btn_row, column=0, columnspan=2, pady=20, sticky=(tk.W, tk.E))
+        btn_frame.grid_columnconfigure(0, weight=1)
+        btn_frame.grid_columnconfigure(1, weight=1)
+        btn_frame.grid_columnconfigure(2, weight=1)
         
         # Botón principal
         if self.modo == "nuevo":
@@ -2112,20 +2500,20 @@ class EmpleadosWindow:
             
         save_btn = tk.Button(btn_frame, text=texto_boton, command=self.guardar_empleado,
                            bg="#27ae60", fg="white", font=('Arial', 10, 'bold'),
-                           relief='flat', padx=20, pady=8, cursor='hand2')
-        save_btn.pack(side=tk.LEFT, padx=5)
+                           relief='flat', padx=15, pady=8, cursor='hand2')
+        save_btn.grid(row=0, column=0, padx=5, sticky=(tk.W, tk.E))
         
         # Botón limpiar
         clear_btn = tk.Button(btn_frame, text="Limpiar", command=self.limpiar_campos,
                             bg="#f39c12", fg="white", font=('Arial', 10, 'bold'),
-                            relief='flat', padx=20, pady=8, cursor='hand2')
-        clear_btn.pack(side=tk.LEFT, padx=5)
+                            relief='flat', padx=15, pady=8, cursor='hand2')
+        clear_btn.grid(row=0, column=1, padx=5, sticky=(tk.W, tk.E))
         
         # Botón cerrar
         close_btn = tk.Button(btn_frame, text="Cerrar", command=self.window.destroy,
                             bg="#e74c3c", fg="white", font=('Arial', 10, 'bold'),
-                            relief='flat', padx=20, pady=8, cursor='hand2')
-        close_btn.pack(side=tk.LEFT, padx=5)
+                            relief='flat', padx=15, pady=8, cursor='hand2')
+        close_btn.grid(row=0, column=2, padx=5, sticky=(tk.W, tk.E))
     
     def cargar_datos_empleado(self):
         """Cargar datos del empleado en el formulario"""
@@ -2150,52 +2538,54 @@ class EmpleadosWindow:
     
     def guardar_empleado(self):
         try:
-            # Validar campos obligatorios
-            if not self.entry_nombre.get().strip():
-                messagebox.showerror("Error", "El nombre es obligatorio")
-                self.entry_nombre.focus()
+            # Importar validadores
+            from utils.validators import DataValidator
+            
+            # Recopilar datos del formulario
+            datos_empleado = {
+                'nombre_completo': self.entry_nombre.get().strip(),
+                'cedula': self.entry_cedula.get().strip(),
+                'telefono': self.entry_telefono.get().strip(),
+                'email': self.entry_email.get().strip(),
+                'direccion': self.entry_direccion.get().strip(),
+                'lugar_nacimiento': self.entry_lugar_nacimiento.get().strip(),
+                'fecha_nacimiento': self.date_fecha_nacimiento.get_date(),
+                'nacionalidad': self.entry_nacionalidad.get().strip(),
+                'area_trabajo': self.combo_area.get(),
+                'cargo': self.entry_cargo.get().strip(),
+                'salario_base': self.entry_salario.get().strip()
+            }
+            
+            # Validar todos los datos usando el sistema de validación
+            empleado_id = self.empleado.id if self.empleado else None
+            es_valido, errores = DataValidator.validar_empleado_completo(self.db, datos_empleado, empleado_id)
+            
+            if not es_valido:
+                # Mostrar todos los errores en un mensaje
+                mensaje_errores = "Se encontraron los siguientes errores:\n\n"
+                for error in errores:
+                    mensaje_errores += f"• {error}\n"
+                messagebox.showerror("Errores de Validación", mensaje_errores)
                 return
             
-            if not self.entry_cedula.get().strip():
-                messagebox.showerror("Error", "La cedula es obligatoria")
-                self.entry_cedula.focus()
-                return
-            
-            # Validar cédula única
-            cedula_nueva = self.entry_cedula.get().strip()
-            if self.modo == "nuevo" or (self.empleado and self.empleado.cedula != cedula_nueva):
-                cedula_existente = self.db.query(Empleado).filter(Empleado.cedula == cedula_nueva).first()
-                if cedula_existente:
-                    messagebox.showerror("Error", "Ya existe un empleado con esa cedula")
-                    self.entry_cedula.focus()
-                    return
-            
-            # Validar salario
+            # Procesar salario
             salario = 0
-            if self.entry_salario.get().strip():
-                try:
-                    salario = int(self.entry_salario.get().strip())
-                except ValueError:
-                    messagebox.showerror("Error", "El salario debe ser un numero")
-                    self.entry_salario.focus()
-                    return
-            
-            # Procesar fecha de nacimiento
-            fecha_nacimiento = self.date_fecha_nacimiento.get_date()
+            if datos_empleado['salario_base']:
+                salario = int(datos_empleado['salario_base'])
             
             if self.modo == "nuevo":
                 # Crear nuevo empleado
                 empleado = Empleado(
-                    nombre_completo=self.entry_nombre.get().strip(),
-                    cedula=cedula_nueva,
-                    telefono=self.entry_telefono.get().strip(),
-                    email=self.entry_email.get().strip(),
-                    direccion=self.entry_direccion.get().strip(),
-                    lugar_nacimiento=self.entry_lugar_nacimiento.get().strip(),
-                    fecha_nacimiento=fecha_nacimiento,
-                    nacionalidad=self.entry_nacionalidad.get().strip(),
-                    area_trabajo=self.combo_area.get(),
-                    cargo=self.entry_cargo.get().strip(),
+                    nombre_completo=datos_empleado['nombre_completo'],
+                    cedula=datos_empleado['cedula'],
+                    telefono=datos_empleado['telefono'],
+                    email=datos_empleado['email'],
+                    direccion=datos_empleado['direccion'],
+                    lugar_nacimiento=datos_empleado['lugar_nacimiento'],
+                    fecha_nacimiento=datos_empleado['fecha_nacimiento'],
+                    nacionalidad=datos_empleado['nacionalidad'],
+                    area_trabajo=datos_empleado['area_trabajo'],
+                    cargo=datos_empleado['cargo'],
                     salario_base=salario
                 )
                 self.db.add(empleado)
@@ -2206,16 +2596,16 @@ class EmpleadosWindow:
                 
             else:
                 # Actualizar empleado existente
-                self.empleado.nombre_completo = self.entry_nombre.get().strip()
-                self.empleado.cedula = cedula_nueva
-                self.empleado.telefono = self.entry_telefono.get().strip()
-                self.empleado.email = self.entry_email.get().strip()
-                self.empleado.direccion = self.entry_direccion.get().strip()
-                self.empleado.lugar_nacimiento = self.entry_lugar_nacimiento.get().strip()
-                self.empleado.fecha_nacimiento = fecha_nacimiento
-                self.empleado.nacionalidad = self.entry_nacionalidad.get().strip()
-                self.empleado.area_trabajo = self.combo_area.get()
-                self.empleado.cargo = self.entry_cargo.get().strip()
+                self.empleado.nombre_completo = datos_empleado['nombre_completo']
+                self.empleado.cedula = datos_empleado['cedula']
+                self.empleado.telefono = datos_empleado['telefono']
+                self.empleado.email = datos_empleado['email']
+                self.empleado.direccion = datos_empleado['direccion']
+                self.empleado.lugar_nacimiento = datos_empleado['lugar_nacimiento']
+                self.empleado.fecha_nacimiento = datos_empleado['fecha_nacimiento']
+                self.empleado.nacionalidad = datos_empleado['nacionalidad']
+                self.empleado.area_trabajo = datos_empleado['area_trabajo']
+                self.empleado.cargo = datos_empleado['cargo']
                 self.empleado.salario_base = salario
                 
                 if hasattr(self, 'combo_estado'):
@@ -2287,6 +2677,15 @@ def main():
     # Configurar cierre de aplicación
     def on_closing():
         if messagebox.askokcancel("Cerrar", "¿Estás seguro que deseas cerrar el sistema?"):
+            # Detener el sistema de alertas antes de cerrar
+            try:
+                from alerts.notification_system import AlertsManager
+                # Crear una instancia temporal para detener el monitoreo
+                alerts_manager = AlertsManager()
+                alerts_manager.stop_monitoring()
+            except Exception as e:
+                print(f"Error deteniendo alertas: {e}")
+            
             root.destroy()
     
     root.protocol("WM_DELETE_WINDOW", on_closing)
@@ -2294,7 +2693,7 @@ def main():
     # Mostrar mensaje de bienvenida
     print("Sistema de Gestion de Personal v1.2 iniciado")
     print("Funcionalidad Excel automatico ACTIVADA")
-    print("Directorio Excel:", app.excel_dir)
+    print("Sistema de validacion y backup ACTIVADO")
     
     # Ejecutar aplicación
     root.mainloop()

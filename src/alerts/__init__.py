@@ -4,6 +4,6 @@ Módulo de Alertas y Notificaciones
 Sistema de monitoreo automático para el sistema de gestión
 """
 
-from .notification_system import AlertsManager, AlertsWindow, alerts_manager
+from .notification_system import AlertsManager, AlertsWindow, abrir_centro_alertas
 
-__all__ = ['AlertsManager', 'AlertsWindow', 'alerts_manager']
+__all__ = ['AlertsManager', 'AlertsWindow', 'abrir_centro_alertas']
