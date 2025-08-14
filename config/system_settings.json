@@ -1,0 +1,52 @@
+{
+  "system": {
+    "version": "2.0.0",
+    "language": "es",
+    "theme": "default",
+    "auto_backup": true,
+    "backup_interval_hours": 24,
+    "max_backups": 30,
+    "enable_logging": true,
+    "log_level": "INFO"
+  },
+  "database": {
+    "auto_optimize": true,
+    "optimize_interval_days": 7,
+    "vacuum_on_startup": false,
+    "connection_timeout": 30
+  },
+  "interface": {
+    "window_width": 1100,
+    "window_height": 700,
+    "remember_position": true,
+    "show_tooltips": true,
+    "auto_refresh_interval": 30
+  },
+  "notifications": {
+    "enable_desktop_notifications": true,
+    "sound_enabled": true,
+    "stock_alert_threshold": 10,
+    "expiration_alert_days": 30,
+    "contract_expiry_alert_days": 7
+  },
+  "reports": {
+    "default_format": "PDF",
+    "include_charts": true,
+    "auto_open_reports": true,
+    "save_reports": true,
+    "reports_directory": "reports/generated"
+  },
+  "security": {
+    "session_timeout_minutes": 30,
+    "max_login_attempts": 3,
+    "password_min_length": 8,
+    "require_special_chars": true,
+    "backup_encryption": false
+  },
+  "performance": {
+    "cache_enabled": true,
+    "cache_size_mb": 100,
+    "auto_cleanup_cache": true,
+    "cleanup_interval_hours": 24
+  }
+}
