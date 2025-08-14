@@ -1,0 +1,109 @@
+# ========================================
+# SISTEMA DE GESTIÓN PERSONAL - .gitignore
+# ========================================
+
+# Entornos virtuales
+venv/
+env/
+.venv/
+.env/
+
+# Archivos compilados de Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.so
+*.dll
+*.dylib
+
+# Archivos de distribución
+dist/
+build/
+*.egg-info/
+
+# Archivos de logs y bases de datos
+*.log
+*.sqlite3
+*.db
+logs/
+database/
+temp/
+
+# Archivos de configuración y datos
+config/
+empleados_data/
+reports/
+
+# Archivos de Excel y documentos
+*.xlsx
+*.xls
+*.csv
+*.pdf
+*.doc
+*.docx
+
+# Archivos de configuración de IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos de entorno o configuración secreta
+.env
+*.env
+.env.local
+.env.production
+
+# Archivos generados por Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Archivos de backup
+*.bak
+*.backup
+*.old
+
+# Archivos temporales
+*.tmp
+*.temp
+
+# Archivos de caché
+.cache/
+*.cache
+
+# Archivos de test
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Archivos de documentación generada
+docs/_build/
+
+# Archivos de instalación
+*.msi
+*.exe
+*.dmg
+*.pkg
+
+# Archivos de compresión
+*.zip
+*.rar
+*.7z
+*.tar.gz
+
+# Archivos de imágenes grandes
+*.psd
+*.ai
+*.eps
+
+# Archivos de video y audio
+*.mp4
+*.avi
+*.mov
+*.mp3
+*.wav
